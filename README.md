@@ -3,7 +3,7 @@
 面向研究生的一体化课表 / 作业 / 选课工具。桌面端为单文件 HTML 原型，移动端为 WebView 壳打包的 Android APK，两者共用同一份数据与业务逻辑。
 
 - **学期课表**：按周、按天展示，每天固定三时段（上午 08:30–11:30、下午 14:00–17:00、晚上 18:00–21:00），支持单双周与周次区间。
-- **选课沙盘**：导入全量课程清单，自动识别时间冲突并把冲突课程聚合进同一个格子，支持互斥选择与学分统计。
+- **逐格选课**：课程表每个格子（星期 × 时段）是一个下拉框，选一门课或选「无课」，21 个格子填完即得最终课表。冲突的课自动排除，周次不重叠的可以同时选。
 - **作业管理**：每条作业记录提交方式、提交地点、内容、教材 / PPT 章节、截止时间。
 - **Excel 导入**：App 内直接选 `.xlsx` 解析，先预览勾选再写入课表。
 
@@ -19,11 +19,12 @@
 │   │   ├── assets/index.html   移动端页面（由 build_app.js 从桌面原型生成）
 │   │   ├── assets/xlsx.full.min.js   SheetJS，用于 App 内解析 Excel
 │   │   └── java/.../MainActivity.java 原生壳：文件选择、本地存储兜底、返回键处理
-│   ├── out/GradSchedule-v1.0.apk      已签名 APK（0.34MB）
+│   ├── out/GradSchedule-v1.1.apk      已签名 APK（0.34MB）
 │   └── 安装说明.md
 └── tools/
-    ├── gen_plan_data.py        解析教务 Excel → 生成选课模式数据（Python）
+    ├── gen_plan_data.py        解析教务 Excel → 生成选课清单数据（Python）
     ├── dump_xlsx.py            探查 Excel 结构（Python）
+    ├── patch_data.js           应用教务调课通知 + 公开仓库数据脱敏
     ├── build_app.js            桌面原型 → 移动端页面（JS）
     ├── build_apk.js            手工构建链：aapt2 → javac → d8 → zipalign → apksigner
     ├── dl.js                   下载 Android SDK 平台 / build-tools / SheetJS
@@ -39,7 +40,7 @@
 ```bash
 node tools/dl.js        # 首次执行，下载 Android SDK 平台与 build-tools（约 350MB）
 node tools/build_app.js # 生成移动端页面
-node tools/build_apk.js # 输出 android/out/GradSchedule-v1.0.apk
+node tools/build_apk.js # 输出 android/out/GradSchedule-v1.1.apk
 ```
 
 **冒烟测试**（需 `npm i jsdom`）：
@@ -64,6 +65,12 @@ XLSX_FILE="/path/to/课表.xlsx" node tools/smoke.js
 **三处入口，一份数据。** Excel、截图、手工录入只是三个 Parser，归一化后统一落到「课程 / 排课 / 作业 / 教材 / 变更」五类实体；课表、作业看板、DDL 日历是同一数据的不同视图。
 
 **教务表交叉核对。** 用个人课表与教务排课表逐门比对教室，输出差异清单供人工确认。
+
+**数据来源有优先级。** 同一门课的教室在 Excel 排课表和后续教务通知里可能不一致，实测确认应以**教务通知**为准（详见需求文档 E.4）。已应用的通知写在 `tools/patch_data.js` 的 `NOTICE` 表中，可随时增补重跑。
+
+## 隐私
+
+仓库为公开可见，**不含任何个人课表数据**：学期课表初始为空（显示引导卡片，由选课结果导出生成），选课清单 55 门课程全部为「候选」状态。课表数据只存在于你本机浏览器 / 手机上，不上传。
 
 ## 已知限制
 

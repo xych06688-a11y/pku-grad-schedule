@@ -13,7 +13,7 @@ const vc = new VirtualConsole();
 vc.on('jsdomError', e => errs.push('jsdomError: ' + (e.stack || e.message)));
 vc.on('error', (...a) => errs.push('console.error: ' + a.join(' ')));
 
-console.log('=== 1. 渲染 ===');
+console.log('=== 1. 渲染（学期课表，初始为空） ===');
 const dom = new JSDOM(HTML, {
   runScripts: 'dangerously',
   pretendToBeVisual: true,
@@ -29,21 +29,39 @@ const ok = (n, v) => console.log((v ? '  OK  ' : ' FAIL ') + n + (v === true ? '
 
 ok('无脚本错误', errs.length === 0 ? true : errs.slice(0, 3).join(' | '));
 ok('grid 已渲染', doc.getElementById('grid').innerHTML.length > 200);
-const clsN = doc.querySelectorAll('#grid .cls').length;
-ok('学期课表课程卡片数 >= 8（综合实践待定不在网格）', clsN >= 8 ? true : clsN);
-ok('待定课程已单独列出', doc.getElementById('pendingBox').innerHTML.indexOf('综合实践') >= 0);
+ok('个人课表已清空（无课程卡片）', doc.querySelectorAll('#grid .cls').length === 0);
+ok('显示空状态引导', doc.getElementById('termEmpty').innerHTML.indexOf('课表还是空的') >= 0);
 ok('网格外层滚动容器', !!doc.querySelector('.gridwrap'));
 ok('XLSX 可用', typeof win.XLSX === 'object');
 ok('持久化已写入 localStorage', !!win.localStorage.getItem('gs_data_v1'));
-ok('浮动数据按钮存在', doc.body.textContent.indexOf('数据') > 0);
 
-console.log('\n=== 2. 选课模式 ===');
+console.log('\n=== 2. 逐格选课 ===');
 win.eval("setMode('plan')");
+const total = win.eval('planCourses.length');
+ok('选课清单课程数 >= 50', total >= 50 ? true : total);
+const sels = doc.querySelectorAll('#grid select');
+ok('逐格下拉框已渲染', sels.length >= 10 ? true : sels.length);
 const grp = doc.getElementById('pGroups');
-const grpN = grp ? grp.querySelectorAll('.grpline').length : -1;
-ok('冲突组已渲染', grpN > 0 ? true : grpN);
-const cards = doc.querySelectorAll('#grid .pcard').length;
-ok('选课网格课程数 > 40', cards > 40 ? true : cards);
+ok('冲突组仍可查看', (grp ? grp.querySelectorAll('.grpline').length : -1) > 0);
+ok('未排时间课程可单独选', doc.getElementById('pPend').innerHTML.indexOf('选这门') >= 0);
+
+/* 逐格选课：选一门 → 已选；选「无课」→ 回到候选 */
+const sel0 = doc.querySelector('#grid select');
+const opt0 = [...sel0.options].filter(o => o.value)[0];
+ok('下拉框含候选课程', !!opt0);
+if (opt0) {
+  const cid = opt0.value;
+  sel0.value = cid;
+  sel0.dispatchEvent(new win.Event('change'));
+  const st1 = win.eval(`planCourses.find(c=>c.id==='${cid}').status`);
+  ok('选中后状态为已选', st1 === '已选' ? true : st1);
+  const outN = win.eval("planCourses.filter(c=>c.status==='排除').length");
+  console.log('  自动排除门数:', outN);
+  sel0.value = '';
+  sel0.dispatchEvent(new win.Event('change'));
+  const st2 = win.eval(`planCourses.find(c=>c.id==='${cid}').status`);
+  ok('设为无课后回到候选', st2 === '候选' ? true : st2);
+}
 const stat = doc.getElementById('pStat');
 console.log('  侧栏统计:', stat ? stat.textContent.trim().slice(0, 80) : '');
 

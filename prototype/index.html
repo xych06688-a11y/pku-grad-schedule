@@ -95,6 +95,15 @@
   .cgrp{border:1px dashed #f0a3a3;background:#fff8f8;border-radius:8px;margin:5px 3px;padding:4px}
   .cgrp .gh{font-size:10.5px;color:#b91c1c;font-weight:600;padding:1px 4px 3px;display:flex;justify-content:space-between;align-items:center}
   .cgrp .pcard{margin:3px 0;border-left-color:var(--danger);border-color:#fecaca}
+  /* 逐格选课：每个时段一个下拉框，选一门或「无课」 */
+  .slotpick{display:flex;flex-direction:column;gap:3px;margin:2px 0}
+  .slotpick select{width:100%;font-size:11px;padding:3px 4px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--tx);cursor:pointer}
+  .slotpick select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  .slc{font-size:10px;color:var(--tx3);display:flex;justify-content:space-between;align-items:center;gap:4px}
+  .slc button{border:1px solid var(--line);background:#fff;border-radius:4px;font-size:10px;padding:0 5px;cursor:pointer;color:var(--tx2)}
+  .slc button:hover{border-color:var(--accent);color:var(--accent)}
+  .slotempty{text-align:center;color:var(--tx3);font-size:11px;padding:8px 0}
+  .slout{font-size:10px;color:var(--tx3);margin-top:2px}
   table.grid.plan td.cell{height:auto;min-height:116px;padding:1px}
   .grpline{border:1px solid #fecaca;background:#fff8f8;border-radius:8px;padding:7px 9px;margin-bottom:7px;font-size:12px}
   .grpline .gt{font-size:11px;color:#b91c1c;font-weight:600;margin-bottom:3px}
@@ -150,6 +159,7 @@
     </span>
     <span id="btnPlan" style="display:none">
       <button class="btn" id="btnPlanImp">导入选课清单</button>
+      <button class="btn" id="btnClearSel">清空选择</button>
       <button class="btn pri" id="btnExport">导出为正式课表</button>
     </span>
   </div>
@@ -159,7 +169,7 @@
   <div class="main">
     <section class="card">
       <div class="weekbar" id="planbar" style="display:none">
-        <div><span class="t">选课冲突视图</span> <span class="sub">全学期叠加 · 时间重叠且周次相交的课程归入同一冲突组</span></div>
+        <div><span class="t">逐格选课</span> <span class="sub">每个格子选一门课，或选「无课」；冲突的课会自动排除</span></div>
         <div class="spacer"></div>
         <span class="sub" id="pStat"></span>
       </div>
@@ -172,6 +182,7 @@
         <span class="sub" id="wStat"></span>
       </div>
       <table class="grid" id="grid"></table>
+      <div id="termEmpty"></div>
       <div id="pendingBox"></div>
       <div class="legend">
         <span><i style="background:#dc2626"></i>角标 = 待办作业数</span>
@@ -229,50 +240,31 @@ const NOW=new Date(2026,8,13,10,20);
 const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
 const PERIODS=[{k:'morning',n:'上午',t:'08:30–11:30'},{k:'afternoon',n:'下午',t:'14:00–17:00'},{k:'evening',n:'晚上',t:'18:00–21:00'}];
 
-const courses=[
- {id:'c1',name:'云计算技术及应用',code:'01714330',teacher:'莫同',credit:3,cat:'专业选修',color:0},
- {id:'c2',name:'开源软件开发基础及实践',code:'01711990',teacher:'荆琦',credit:2,cat:'专业选修',color:1},
- {id:'c3',name:'自然辩证法概论（1班）',code:'01710101',teacher:'朱效民',credit:1,cat:'公共必修',color:2},
- {id:'c4',name:'互联网软件开发技术与实践',code:'01711930',teacher:'张齐勋',credit:2,cat:'专业选修',color:3},
- {id:'c5',name:'中国式现代化的理论与实践（1班）',code:'22105348',teacher:'习院',credit:2,cat:'公共必修',color:4},
- {id:'c6',name:'算法分析与设计（03班）',code:'01711100',teacher:'李聪',credit:3,cat:'专业选修',color:5},
- {id:'c7',name:'金融产品创新',code:'01719220',teacher:'王德全',credit:2,cat:'专业选修',color:6},
- {id:'c8',name:'素质教育与前沿技术（01班）',code:'01710042',teacher:'素质教育教研室',credit:2,cat:'公共必修',color:7},
- {id:'c9',name:'综合实践（1班）-软件工程与数据技术系',code:'01711870',teacher:'导师小组',credit:2,cat:'必修',color:0,pending:true}
-];
-const slots=[
- {id:'s1',c:'c1',d:0,p:'afternoon',b:'大兴',r:'1401',w:'1-18',weeks:range(1,18),mode:'线下'},
- {id:'s2',c:'c2',d:1,p:'morning',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
- {id:'s3',c:'c3',d:1,p:'afternoon',b:'大兴',r:'报告厅',w:'2-18',weeks:range(2,18),mode:'线下',st:'13:00',en:'17:00'},
- {id:'s4',c:'c4',d:2,p:'morning',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
- {id:'s5',c:'c5',d:2,p:'afternoon',b:'大兴',r:'报告厅',w:'单周',weeks:odd(1,17),mode:'线下',st:'13:00',en:'17:00'},
- {id:'s6',c:'c6',d:3,p:'afternoon',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
- {id:'s7',c:'c7',d:4,p:'afternoon',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
- {id:'s8',c:'c8',d:5,p:'morning',b:'大兴',r:'3204 / 报告厅',w:'1-18',weeks:range(1,18),mode:'线下'}
-];
+const courses=[];
+const slots=[];
 const events=[];
 const PIV={morning:[510,690],afternoon:[840,1020],evening:[1080,1260]};
 function T(d,s,e,w,we){return{d:d,start:s,end:e,weeks:w,wk:we}}
 /*PLAN_DATA_START*/
 let planCourses=[
-{id:'p1',code:'22105348',name:'中国式现代化的理论与实践',teacher:'习院',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'1班关键软件、人工智能、软件工程、新兴交叉学科四个方向上课，单周，13:00-17:00，每次课四课时。选课由学院、研究',status:'已选',room:'报告厅',times:[T(2,'13:00','17:00',odd(1,17),'单周')]},
+{id:'p1',code:'22105348',name:'中国式现代化的理论与实践',teacher:'习院',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'1班关键软件、人工智能、软件工程、新兴交叉学科四个方向上课，单周，13:00-17:00，每次课四课时。选课由学院、研究',status:'候选',room:'报告厅',times:[T(2,'13:00','17:00',odd(1,17),'单周')]},
 {id:'p2',code:'22105348',name:'中国式现代化的理论与实践',teacher:'习院',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'2班集成电路工程、金融科技、网络与信息安全、高端芯片四个方向上课，双周，13:00-17:00，每次课四课时。选课由学院',status:'候选',room:'报告厅',times:[T(2,'13:00','17:00',even(2,18),'双周')]},
-{id:'p3',code:'01710101',name:'自然辩证法概论（1班）',teacher:'朱效民',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'限关键软件、人工智能、软件工程、新兴交叉学科方向选课，9月15日开课，每次课4课时，1班授课时间为13:00-17:00',status:'已选',room:'报告厅',times:[T(1,'13:00','17:00',range(1,18),'1-18周')]},
+{id:'p3',code:'01710101',name:'自然辩证法概论（1班）',teacher:'朱效民',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'限关键软件、人工智能、软件工程、新兴交叉学科方向选课，9月15日开课，每次课4课时，1班授课时间为13:00-17:00',status:'候选',room:'报告厅',times:[T(1,'13:00','17:00',range(1,18),'1-18周')]},
 {id:'p4',code:'01710101',name:'自然辩证法概论（2班）',teacher:'—',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'限集成电路工程、金融科技、网络与信息安全、高端芯片方向选课，9月15日开课，每次课4课时，2班授课时间为18:00-22',status:'候选',room:'报告厅',times:[T(1,'18:00','22:00',range(1,18),'1-18周')]},
-{id:'p5',code:'01711870',name:'综合实践（1班）-软件工程与数据技术系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'软件工程、人工智能方向学生选课',status:'已选',room:'',times:[]},
+{id:'p5',code:'01711870',name:'综合实践（1班）-软件工程与数据技术系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'软件工程、人工智能方向学生选课',status:'候选',room:'',times:[]},
 {id:'p6',code:'01711870',name:'综合实践（2班）-网络软件与系统安全系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'丁玉',note:'网络与信息安全方向学生选课',status:'候选',room:'',times:[]},
 {id:'p7',code:'01711870',name:'综合实践（3班）-集成电路与智能系统系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'丁玉',note:'集成电路工程方向学生选课',status:'候选',room:'',times:[]},
 {id:'p8',code:'01711870',name:'综合实践（4班）-金融信息与工程管理系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'梁洁',note:'金融科技方向学生选课',status:'候选',room:'',times:[]},
 {id:'p9',code:'1710110',name:'英语（1班）',teacher:'李博婷',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'人工智能、软件工程方向学生选课',status:'候选',room:'3305',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p10',code:'01710110',name:'英语（2班）',teacher:'李博婷',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'集成电路工程、金融科技、网络与信息安全学生选课',status:'候选',room:'3305',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p11',code:'01710110',name:'英语（3班）',teacher:'高志军',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'学术写作，仅限关键软件、高端芯片、新兴交叉学科方向选修',status:'候选',room:'3201',times:[T(3,'08:30','11:30',range(1,18),'1-18周')]},
-{id:'p12',code:'01710042',name:'素质教育与前沿技术-01班',teacher:'素质教育教研室',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'',status:'已选',room:'3204|报告厅',times:[T(5,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p12',code:'01710042',name:'素质教育与前沿技术-01班',teacher:'素质教育教研室',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'',status:'候选',room:'3204|报告厅',times:[T(5,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p13',code:'01710043',name:'职业道德与素养-01班',teacher:'素质教育教研室',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'26级新生勿选',status:'候选',room:'3204|报告厅',times:[T(5,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p14',code:'01712630',name:'数字图象处理',teacher:'曹喜信',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p15',code:'01715340',name:'微纳系统集成',teacher:'王振宇',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(1,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p16',code:'01714353',name:'集成电路器件与工艺',teacher:'黎明、黄芊芊、吴恒',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
-{id:'p17',code:'01713990',name:'集成电路前沿技术导论',teacher:'刘力锋、王玮、崔小欣',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
-{id:'p18',code:'01715200',name:'数字集成电路设计',teacher:'于敦山',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p17',code:'01713990',name:'集成电路前沿技术导论',teacher:'刘力锋、王玮、崔小欣',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'1401',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p18',code:'01715200',name:'数字集成电路设计',teacher:'于敦山',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'1401',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p19',code:'01715890',name:'微电子前沿技术专题',teacher:'时广轶',hours:16,credit:1.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(5,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p20',code:'01714020',name:'物联网与智慧系统',teacher:'王振宇',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p21',code:'01713120',name:'数字集成电路设计实践',teacher:'曹健',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'适合集成电路工程方向学生选修',status:'候选',room:'1202',times:[T(2,'18:00','21:00',range(1,18),'1-18周')]},
@@ -280,7 +272,7 @@ let planCourses=[
 {id:'p23',code:'01714354',name:'大语言模型与应用实践',teacher:'俞敬松',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3201',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p24',code:'01711100',name:'算法分析与设计-01班',teacher:'张齐勋',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向金融科技方向、新兴交叉学科-数字人文社科方向',status:'候选',room:'3202',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p25',code:'01711100',name:'算法分析与设计-02班',teacher:'孙圣力',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向技术类方向',status:'候选',room:'3204',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
-{id:'p26',code:'01711100',name:'算法分析与设计-03班',teacher:'李聪',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向技术类方向',status:'已选',room:'3201',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p26',code:'01711100',name:'算法分析与设计-03班',teacher:'李聪',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向技术类方向',status:'候选',room:'3201',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p27',code:'01714822',name:'Agent智能体开发与实践',teacher:'夏敏',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3201',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p28',code:'01700145',name:'学科专著研读-01班',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'仅限关键软件、高端芯片、新兴交叉学科方向选修',status:'候选',room:'',times:[]},
 {id:'p29',code:'01710167',name:'科研实践（I）',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'仅限25级关键软件、高端芯片方向选修、新兴交叉学科方向选修',status:'候选',room:'',times:[]},
@@ -289,15 +281,15 @@ let planCourses=[
 {id:'p32',code:'01719960',name:'Python-02班',teacher:'方跃坚',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'双周上课',status:'候选',room:'3202',times:[T(2,'14:00','17:00',even(2,18),'双周')]},
 {id:'p33',code:'01712460',name:'大数据分析技术与实践-01班',teacher:'贾统',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'仅限关键软件、新兴交叉学科方向选修',status:'候选',room:'3202',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p34',code:'01710285',name:'操作系统与虚拟化安全',teacher:'沈晴霓',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'仅限关键软件、新兴交叉学科方向选修',status:'候选',room:'3202',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
-{id:'p35',code:'01711930',name:'互联网软件开发技术与实践',teacher:'张齐勋',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'已选',room:'3204',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
-{id:'p36',code:'01711990',name:'开源软件开发基础及实践',teacher:'荆琦',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'已选',room:'3202',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
-{id:'p37',code:'01714330',name:'云计算技术及应用',teacher:'莫同',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'',status:'已选',room:'3204',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p35',code:'01711930',name:'互联网软件开发技术与实践',teacher:'张齐勋',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3202',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p36',code:'01711990',name:'开源软件开发基础及实践',teacher:'荆琦',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3202',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p37',code:'01714330',name:'云计算技术及应用',teacher:'莫同',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'1401',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p38',code:'01710190',name:'JAVA编程技能训练',teacher:'褚伟杰',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'1202',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p39',code:'01704860',name:'深度强化学习',teacher:'周立新',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3201',times:[T(3,'18:00','21:00',range(1,18),'1-18周')]},
 {id:'p40',code:'01718120',name:'机器学习',teacher:'蒋严冰、李素科',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3204',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p41',code:'01711510',name:'软件实现技术',teacher:'蒋严冰',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3204',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p42',code:'01719140',name:'金融数据分析',teacher:'李素科',hours:48,credit:3.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(3,'08:30','11:30',range(1,18),'1-18周')]},
-{id:'p43',code:'01719320',name:'面向金融的Python',teacher:'褚伟杰',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p43',code:'01719320',name:'面向金融的Python',teacher:'储伟杰',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3204',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p44',code:'01716440',name:'金融营销学',teacher:'赵占波',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'1208',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p45',code:'01719680',name:'金融科技理论与实践',teacher:'黄嵩',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3204',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p46',code:'01719890',name:'量化投资策略与技术',teacher:'刘宏志',hours:48,credit:3.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3203',times:[T(0,'18:00','21:00',range(1,18),'1-18周')]},
@@ -305,19 +297,14 @@ let planCourses=[
 {id:'p48',code:'01719270',name:'金融工程与风险管理',teacher:'李昕旸',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3204',times:[T(3,'18:00','21:00',range(1,18),'1-18周')]},
 {id:'p49',code:'01714819',name:'大模型在金融中的应用实践',teacher:'李素科',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(2,'18:00','21:00',range(1,18),'1-18周')]},
 {id:'p50',code:'01714812',name:'数字经济',teacher:'倪宣明',hours:16,credit:1.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3201',times:[T(1,'14:00','17:00',range(1,18),'1-18周')]},
-{id:'p51',code:'01719220',name:'金融产品创新',teacher:'王德全',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'已选',room:'3202',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p51',code:'01719220',name:'金融产品创新',teacher:'王德全',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p52',code:'01712190',name:'人工智能模型安全',teacher:'李聪',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3202',times:[T(1,'14:00','17:00',range(1,18),'1-18周')]},
 {id:'p53',code:'01712250',name:'应用密码学',teacher:'关志',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3201',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p54',code:'01712430',name:'操作系统与虚拟化安全',teacher:'沈晴霓',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3201',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
 {id:'p55',code:'01716960',name:'网络空间安全导论',teacher:'沈晴霓、文伟平、方跃坚、李聪、孙惠平',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3201',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]}
 ];
 /*PLAN_DATA_END*/
-let assigns=[
- {id:'a1',c:'c1',week:1,title:'作业一：K8s 集群部署与文档',type:'课后作业',content:'在本地或云环境部署一个最小可用 Kubernetes 集群，提交部署文档与截图。',method:'学习平台',target:'教学平台 → 课程作业 → HW1',material:'《云计算：概念、技术与架构》第 3 章 + 课件 P22–40',due:'2026-09-21 23:59',hours:4,weight:20,status:'未开始',prio:'高'},
- {id:'a2',c:'c6',week:1,title:'分治与动态规划习题（含证明）',type:'课后作业',content:'完成第 2、3 章习题，要求给出递归式推导与正确性证明。',method:'学习平台',target:'教学平台 → 课程作业',material:'《算法设计与分析》第 2–3 章 + 课件 P15–33',due:'2026-09-17 23:59',hours:5,weight:25,status:'进行中',prio:'紧急'},
- {id:'a3',c:'c2',week:2,title:'为开源项目提交第一个 PR',type:'代码',content:'Fork 指定仓库，修复一个 good-first-issue，按项目规范提交 PR 并关联 issue。',method:'代码仓库',target:'git@github.com:pku-oss/course-2026.git',material:'Git 使用手册第 4 章 + 课件 P8–20',due:'2026-09-24 23:59',hours:6,weight:15,status:'未开始',prio:'中'},
- {id:'a4',c:'c5',week:3,title:'调研报告：中国式现代化专题',type:'阅读报告',content:'围绕指定专题撰写 1500 字调研报告，要求引用不少于 5 篇文献。',method:'学习平台',target:'习院平台 → 作业提交',material:'课程讲义 第 2 讲 + 指定阅读包 P1–45',due:'2026-09-30 23:59',hours:6,weight:20,status:'未开始',prio:'低'}
-];
+let assigns=[];
 let changes=[];
 
 function range(a,b){const r=[];for(let i=a;i<=b;i++)r.push(i);return r}
@@ -406,6 +393,14 @@ function renderTerm(){
   });
   html+='</tbody>';
   document.getElementById('grid').innerHTML=html;
+  document.getElementById('termEmpty').innerHTML=(!courses.length&&!slots.length)?
+    `<div class="card" style="margin-top:12px;text-align:center;padding:28px 16px;background:#f8fafc">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">课表还是空的</div>
+      <div style="color:var(--tx2);font-size:12.5px;line-height:1.9">
+        切到「选课模式」按格子逐格选课，选好后点 <b>导出为正式课表</b> 即可生成；<br>也可以直接导入教务 Excel 课表。
+      </div>
+      <div style="margin-top:14px"><button class="btn pri" onclick="setMode('plan')">去选课</button>
+      <button class="btn" onclick="openExcel()">导入 Excel 课表</button></div></div>`:'';
 
   const list=assigns.filter(a=>a.week===W).sort((a,b)=>parseDue(a.due)-parseDue(b.due));
   document.getElementById('asCount').textContent=`${list.length} 条 · 待办 ${list.filter(a=>a.status!=='已提交'&&a.status!=='已批改').length}`;
@@ -445,6 +440,7 @@ function renderTerm(){
     document.getElementById('changeTxt').innerHTML=`<b>${MM.length} 处教室与教务排课表不一致</b>：${MM.map(m=>`${m.course.name}（你的 ${m.mine} → 教务 ${m.official}）`).join('；')}`;}
   else if(pend.length){
     `<b>${pend.length} 条待确认变更</b>：${pend.map(c=>course(slots.find(s=>s.id===c.slot).c).name+'（'+c.type+' '+c.old+' → '+c.nw+'）').join('；')}`;}
+  else if(!courses.length&&!slots.length){bar.style.display='flex';bar.className='notice ok';document.getElementById('changeTxt').textContent='课表为空：请先在「选课模式」选课后导出，或直接导入教务 Excel';}
   else{bar.style.display='flex';bar.className='notice ok';document.getElementById('changeTxt').textContent='全部变更已处理，课表与教务通知一致';}
 }
 
@@ -480,16 +476,30 @@ function renderPlan(){
   PERIODS.forEach(p=>{
     html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
     for(let d=0;d<7;d++){
-      html+='<td class="cell">';
       const here=A.sess.filter(s=>s.t.d===d&&periodsOf(s.t).includes(p.k));
-      const grp={};const single=[];
-      here.forEach(s=>{ A.gid[s.key]?(grp[A.gid[s.key]]=grp[A.gid[s.key]]||[]).push(s):single.push(s) });
-      Object.keys(grp).sort().forEach(k=>{
-        const members=grp[k];
-        html+=`<div class="cgrp"><div class="gh"><span>时间冲突 ×${members.length}</span><span style="font-weight:400;opacity:.8">${k}</span></div>
-        ${members.map(s=>pcard(s,A)).join('')}</div>`;
-      });
-      single.forEach(s=>{html+=pcard(s,A)});
+      const sel=here.find(s=>s.c.status==='已选');
+      html+='<td class="cell">';
+      if(!here.length){
+        html+='<div class="slotempty">—</div>';
+      }else{
+        html+=`<div class="slotpick">
+          <select onchange="pick(${d},'${p.k}',this.value)">
+            <option value="">— 无课 —</option>
+            ${here.map(s=>`<option value="${s.c.id}"${sel&&sel.c.id===s.c.id?' selected':''}>${s.c.name}${s.c.teacher&&s.c.teacher!=='—'?' · '+s.c.teacher:''}</option>`).join('')}
+          </select>
+          <span class="slc"><span>共 ${here.length} 门可选</span>${here.length>1?`<button onclick="openCell(${d},'${p.k}')">全部 ${here.length} 门</button>`:''}</span>
+        </div>`;
+        if(sel){
+          const t=sel.t;
+          html+=`<div class="pcard sel" onclick="openPlan('${sel.c.id}')">
+            <span class="chip">已选</span>
+            <span class="nm">${sel.c.name}</span>
+            <span class="mt">${t.start}-${t.end} · ${sel.c.teacher} · ${sel.c.credit}学分</span>
+            <span class="mt" style="color:var(--tx3)">${sel.c.room||''} ${t.wk}</span></div>`;
+        }
+        const outN=here.filter(s=>s.c.status==='排除').length;
+        if(outN)html+=`<div class="slout">已自动排除 ${outN} 门（时间冲突）</div>`;
+      }
       html+='</td>';
     }
     html+='</tr>';
@@ -523,8 +533,11 @@ function renderPlan(){
   const pendP=planCourses.filter(c=>!c.times.length);
   document.getElementById('pPendN').textContent=pendP.length+' 门';
   document.getElementById('pPend').innerHTML=pendP.length?pendP.map(c=>
-    `<div class="noft" style="cursor:pointer" onclick="openPlan('${c.id}')"><b>${c.name}</b>${c.status==='已选'?' <span class="pill g">已选</span>':''}
-     <br><span style="color:var(--tx3)">${c.teacher} · ${c.credit} 学分 · 教务员 ${c.admin}</span></div>`).join('')
+    `<div class="noft"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+      <div style="flex:1;cursor:pointer" onclick="openPlan('${c.id}')"><b>${c.name}</b>${c.status==='已选'?' <span class="pill g">已选</span>':''}
+       <br><span style="color:var(--tx3)">${c.teacher} · ${c.credit} 学分 · 教务员 ${c.admin}</span></div>
+      <button class="btn sm${c.status==='已选'?'':' pri'}" onclick="togglePlan('${c.id}')">${c.status==='已选'?'取消':'选这门'}</button>
+     </div></div>`).join('')
     :'<div class="empty">全部课程均已排定时间</div>';
 
   const seen={};const nm=[];
@@ -532,6 +545,52 @@ function renderPlan(){
   document.getElementById('pNear').innerHTML=nm.length?nm.map(([a,b])=>
     `<div class="noft">${a.c.name} × ${b.c.name}<br><span style="color:var(--tx3)">时间重叠 ${a.t.start}–${a.t.end}，但周次 ${a.t.wk} 与 ${b.t.wk} 无交集 → 可同时选</span></div>`).join('')
     :'<div class="empty">暂无周次错开的课程对</div>';
+}
+/* ---------- 逐格选课 ---------- */
+/* 在某个格子里选课：cid 为空 = 该时段设为「无课」 */
+function pick(d,p,cid){
+  const A=analyze();
+  const here=A.sess.filter(s=>s.t.d===d&&periodsOf(s.t).includes(p.k||p));
+  if(!cid){
+    const drop=here.filter(s=>s.c.status==='已选');
+    drop.forEach(s=>{s.c.status='候选'});
+    render();
+    if(drop.length)toast('该时段已设为无课：'+drop.map(s=>s.c.name).join('、'));
+    return;
+  }
+  setPlan(cid,'已选');
+}
+/* 某格子里的全部候选（用于同时段不冲突、想多选的情况） */
+function openCell(d,p){
+  const A=analyze();
+  const here=A.sess.filter(s=>s.t.d===d&&periodsOf(s.t).includes(p));
+  const pn=PERIODS.find(x=>x.k===p);
+  const rows=here.map(s=>{
+    const c=s.c,st=c.status;
+    const btn=st==='已选'?`<button class="btn sm" onclick="togglePlan('${c.id}')">取消选择</button>`
+      :st==='排除'?`<button class="btn sm" onclick="togglePlan('${c.id}')">改为候选</button>`
+      :`<button class="btn sm pri" onclick="togglePlan('${c.id}')">选这门</button>`;
+    return `<div class="grpline" style="margin:6px 0">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <div style="flex:1">
+          <b>${c.name}</b> ${st==='已选'?'<span class="pill g">已选</span>':st==='排除'?'<span class="pill">已排除</span>':''}<br>
+          <span style="color:var(--tx2);font-size:12px">${s.t.start}-${s.t.end} · ${s.t.wk} · ${c.teacher} · ${c.credit}学分 · ${c.room||'—'}</span>
+          ${A.gid[s.key]?`<br><span style="color:#b91c1c;font-size:11.5px">冲突组 ${A.gid[s.key]}：与同组课程互斥</span>`:''}
+        </div>
+        <div style="white-space:nowrap">${btn}</div>
+      </div></div>`;
+  }).join('');
+  open(`<h2>${DAYS[d]} ${pn?pn.n:''}</h2>
+  <div class="desc">该时段共 <b>${here.length}</b> 门课。下拉框只能选一门；若两门课周次不重叠（如同为周三下午但一个单周、一个双周），可在下面分别点选。</div>
+  ${rows}
+  <div class="foot"><button class="btn" onclick="closeM()">关闭</button>
+  <button class="btn" onclick="pick(${d},'${p}','')">该时段设为无课</button></div>`);
+}
+function togglePlan(id){
+  const c=planCourses.find(x=>x.id===id);
+  if(!c)return;
+  if(c.status==='已选'){c.status='候选';closeM();render();toast('已取消：'+c.name)}
+  else setPlan(id,'已选');
 }
 function pcard(s,A){
   const c=s.c,st=c.status==='已选'?'sel':c.status==='排除'?'out':'';
@@ -758,6 +817,7 @@ document.getElementById('btnNew').onclick=()=>openNew();
 document.getElementById('changeBar').onclick=()=>{if(MM.length)openMismatch();else openOcr()};
 document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 document.getElementById('btnPlanImp').onclick=openPlanImport;
+document.getElementById('btnClearSel').onclick=()=>{planCourses.forEach(c=>c.status='候选');render();toast('已清空全部选择')};
 document.getElementById('btnExport').onclick=()=>{
   const sel=planCourses.filter(c=>c.status==='已选');
   const A=analyze();const bad=sel.filter(c=>A.sess.some(s=>s.cid===c.id&&A.gid[s.key]&&planCourses.find(x=>x.id===A.groups.find(g=>g.id===A.gid[s.key]).sess.find(y=>y.cid!==c.id).cid).status==='已选'));
