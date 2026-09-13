@@ -1,0 +1,31 @@
+# Android SDK 工具链（353MB，由 tools/dl.js 按需下载，不入库）
+tools/asdk/
+tools/*.zip
+
+# 构建中间产物
+android/build/
+
+# 构建输出：只保留签名后的 APK，其余中间文件忽略
+android/out/**
+!android/out/**/
+!android/out/**/*.apk
+
+# 签名证书（本地自动生成，含私钥，禁止入库）
+android/signing.jks
+*.jks
+*.keystore
+*.p12
+
+# 解析中间产物
+tools/dump.txt
+tools/gen.txt
+tools/asdk/_ls.txt
+
+# 工具自身状态（非项目源码）
+.workbuddy/
+
+# 依赖 / 系统
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>研究生课程表与作业管理系统 · 交互原型 v0.1</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e5e7eb; --line2:#d1d5db;
+    --tx:#1f2328; --tx2:#6b7280; --tx3:#9ca3af;
+    --accent:#3b5bdb; --accent-soft:#eef2ff;
+    --ok:#1d9e75; --warn:#b45309; --warn-bg:#fff7ed; --danger:#dc2626; --danger-bg:#fef2f2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;padding:20px}
+  .wrap{max-width:1480px;margin:0 auto}
+  .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .brand{font-size:17px;font-weight:600;margin-right:6px}
+  .brand span{color:var(--tx3);font-weight:400;font-size:12px;margin-left:8px}
+  select,input,textarea,button{font:inherit;color:var(--tx)}
+  select,input,textarea{background:#fff;border:1px solid var(--line2);border-radius:8px;padding:6px 10px;outline:none}
+  select:focus,input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,91,219,.12)}
+  .btn{border:1px solid var(--line2);background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
+  .btn:hover{background:#f9fafb;border-color:var(--tx3)}
+  .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.pri:hover{background:#2f4bc0}
+  .btn.sm{padding:4px 9px;font-size:12px;border-radius:6px}
+  .spacer{flex:1}
+  .notice{display:flex;align-items:center;gap:10px;background:var(--warn-bg);border:1px solid #fed7aa;color:#92400e;border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:13px;cursor:pointer}
+  .notice .dot{width:8px;height:8px;border-radius:50%;background:#f59e0b;flex:none}
+  .notice.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+  .notice.ok .dot{background:#10b981}
+  .main{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .weekbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .weekbar .t{font-size:15px;font-weight:600}
+  .weekbar .sub{color:var(--tx3);font-size:12px}
+  table.grid{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+  table.grid th,table.grid td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);vertical-align:top;padding:0}
+  table.grid th:last-child,table.grid td:last-child{border-right:none}
+  table.grid thead th{background:#fafbfc;font-weight:500;font-size:12px;padding:8px 6px;text-align:center;color:var(--tx2)}
+  table.grid thead th.today{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  table.grid thead th .d{display:block;font-size:11px;color:var(--tx3);margin-top:2px;font-weight:400}
+  td.timecell{width:96px;background:#fafbfc;text-align:center;padding:12px 4px;font-size:12px;color:var(--tx2)}
+  td.timecell b{display:block;font-size:13px;color:var(--tx);font-weight:500}
+  td.timecell i{display:block;font-style:normal;font-size:11px;color:var(--tx3);margin-top:2px}
+  td.cell{height:104px;background:#fff}
+  td.cell.today{background:#fbfcff}
+  td.cell.cur{box-shadow:inset 0 0 0 2px var(--accent)}
+  .cls{position:relative;border-left-width:3px;border-left-style:solid;border-radius:6px;padding:6px 8px;margin:5px;font-size:12px;line-height:1.45;cursor:pointer;overflow:hidden}
+  .cls:hover{filter:brightness(.98)}
+  .cls .nm{font-weight:600;font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cls .mt{color:var(--tx2);font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cls .wk{position:absolute;right:5px;bottom:4px;font-size:10px;color:var(--tx3)}
+  .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;line-height:16px;text-align:center;padding:0 4px}
+  .flag{position:absolute;top:4px;left:5px;font-size:10px;color:var(--warn);font-weight:600}
+  .ev{border:1px dashed var(--line2);border-radius:6px;padding:5px 8px;margin:5px;font-size:11.5px;color:var(--tx2);background:#fcfcfd;cursor:pointer}
+  .ev b{color:var(--tx);font-weight:500;display:block}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--tx3)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .side .card{margin-bottom:12px}
+  .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .hd h3{font-size:13.5px;font-weight:600}
+  .hd .n{font-size:11.5px;color:var(--tx3)}
+  .as{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:7px;background:#fff;cursor:pointer}
+  .as:hover{border-color:var(--tx3);background:#fafbfc}
+  .as .r1{display:flex;align-items:center;gap:6px}
+  .as .cn{font-size:12px;font-weight:600}
+  .as .tt{font-size:12.5px;margin:2px 0 3px}
+  .as .r2{font-size:11px;color:var(--tx2);display:flex;gap:8px;flex-wrap:wrap}
+  .pill{font-size:10px;padding:1px 6px;border-radius:20px;border:1px solid var(--line2);color:var(--tx2);flex:none}
+  .pill.m{background:#eef2ff;border-color:#c7d2fe;color:#3730a3}
+  .pill.p{border-style:dashed}
+  .pill.d{background:var(--danger-bg);border-color:#fecaca;color:var(--danger)}
+  .pill.g{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+  .pill.y{background:#fffbeb;border-color:#fde68a;color:#92400e}
+  .cd{font-size:11px;color:var(--danger);font-weight:600;flex:none}
+  .cd.far{color:var(--tx2);font-weight:400}
+  .stat{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12px}
+  .stat:last-child{border:none}
+  .stat b{font-weight:600}
+  .seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+  .seg button{border:none;background:#fff;padding:6px 14px;cursor:pointer;font-size:13px;color:var(--tx2)}
+  .seg button.on{background:var(--accent);color:#fff}
+  .pcard{border:1px solid var(--line);border-left:3px solid var(--tx3);border-radius:6px;padding:5px 7px;margin:4px 0;font-size:11.5px;cursor:pointer;background:#fff;position:relative}
+  .pcard:hover{background:#fafbfc}
+  .pcard .nm{font-weight:600;font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:34px}
+  .pcard .mt{color:var(--tx2);font-size:10.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcard.sel{border-color:var(--accent);border-left-color:var(--accent);background:#f5f8ff}
+  .pcard.out{opacity:.45}
+  .pcard.out .nm{text-decoration:line-through}
+  .pcard .chip{position:absolute;right:5px;top:4px;font-size:9.5px;padding:0 5px;border-radius:4px;background:#f3f4f6;color:var(--tx2)}
+  .pcard.sel .chip{background:var(--accent);color:#fff}
+  .pcard.out .chip{background:#f3f4f6;color:var(--tx3)}
+  .cgrp{border:1px dashed #f0a3a3;background:#fff8f8;border-radius:8px;margin:5px 3px;padding:4px}
+  .cgrp .gh{font-size:10.5px;color:#b91c1c;font-weight:600;padding:1px 4px 3px;display:flex;justify-content:space-between;align-items:center}
+  .cgrp .pcard{margin:3px 0;border-left-color:var(--danger);border-color:#fecaca}
+  table.grid.plan td.cell{height:auto;min-height:116px;padding:1px}
+  .grpline{border:1px solid #fecaca;background:#fff8f8;border-radius:8px;padding:7px 9px;margin-bottom:7px;font-size:12px}
+  .grpline .gt{font-size:11px;color:#b91c1c;font-weight:600;margin-bottom:3px}
+  .grpline .gc{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .grpline .gc span{font-size:11px;padding:1px 6px;border-radius:5px;background:#fff;border:1px solid #fecaca;color:#991b1b}
+  .grpline .gc span.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+  .grpline .gc span.out{opacity:.45;text-decoration:line-through}
+  .noft{border:1px dashed var(--line2);border-radius:8px;padding:7px 9px;margin-bottom:7px;font-size:11.5px;color:var(--tx2);background:#fcfcfd}
+  .ov{position:fixed;inset:0;background:rgba(17,24,39,.45);display:none;padding:40px 16px;z-index:50;overflow:auto}
+  .ov.on{display:block}
+  .modal{background:#fff;border-radius:14px;max-width:820px;margin:0 auto;padding:20px;max-height:calc(100vh - 80px);overflow:auto}
+  .modal h2{font-size:16px;font-weight:600;margin-bottom:4px}
+  .modal .desc{color:var(--tx2);font-size:12.5px;margin-bottom:14px}
+  .modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+  table.tb{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.tb th,table.tb td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+  table.tb th{background:#fafbfc;font-weight:500;color:var(--tx2);white-space:nowrap}
+  .map{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .map .row{display:flex;align-items:center;gap:8px;font-size:12px}
+  .map .row .k{width:88px;color:var(--tx2);flex:none}
+  .map .row select{flex:1;font-size:12px;padding:4px 8px}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form label{font-size:12px;color:var(--tx2);display:block;margin-bottom:3px}
+  .form .full{grid-column:1/-1}
+  .form select,.form input,.form textarea{width:100%}
+  .kv{display:grid;grid-template-columns:96px 1fr;gap:6px 12px;font-size:13px;margin-bottom:14px}
+  .kv .k{color:var(--tx2)}
+  .sec{font-size:12px;color:var(--tx3);margin:14px 0 6px;font-weight:600;letter-spacing:.3px}
+  .diff{display:flex;align-items:center;gap:10px;font-size:13px}
+  .diff .o{color:var(--tx3);text-decoration:line-through}
+  .diff .n{color:var(--danger);font-weight:600}
+  .tag{font-size:11px;padding:1px 7px;border-radius:5px;background:#f3f4f6;color:var(--tx2);border:1px solid var(--line)}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#111827;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;display:none;z-index:99}
+  .empty{color:var(--tx3);font-size:12px;text-align:center;padding:18px 0}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  @media (max-width:1180px){.main{grid-template-columns:1fr}.form,.map{grid-template-columns:1fr}}
+
+  html{-webkit-text-size-adjust:100%}
+  body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+  .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .appmore{position:fixed;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;display:none}
+  @media (max-width:900px){
+    body{padding:0 0 24px}
+    .wrap{max-width:100%}
+    .topbar{position:sticky;top:0;z-index:40;background:var(--bg);margin:0 0 10px;padding:10px 12px;gap:8px;
+      padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line)}
+    .brand{font-size:15px;flex:1 1 100%;margin:0}
+    .brand span{display:none}
+    #semSel{flex:1 1 130px;min-width:110px;font-size:12px;padding:7px 8px}
+    .seg button{padding:8px 12px;font-size:13px}
+    .main{grid-template-columns:1fr;gap:10px;padding:0 10px}
+    .card{padding:11px;border-radius:10px}
+    .side .card{margin-bottom:10px}
+    table.grid{min-width:640px}
+    td.timecell{width:54px;padding:8px 2px;font-size:11px}
+    td.timecell i{display:none}
+    td.timecell b{font-size:11.5px}
+    td.cell{height:86px}
+    table.grid.plan td.cell{min-height:96px}
+    .cls{font-size:11px;padding:4px 6px;margin:3px;border-radius:5px}
+    .cls .nm{font-size:11.5px}
+    .cls .mt{font-size:10px}
+    .cls .wk{font-size:9px;right:3px;bottom:2px}
+    .badge{top:2px;right:2px;min-width:15px;height:15px;line-height:15px;font-size:9px}
+    .pcard .nm{font-size:11.5px;padding-right:30px}
+    .pcard .mt{font-size:10px}
+    .weekbar{gap:6px}
+    .weekbar .t{font-size:14px}
+    .weekbar .sub{font-size:11px}
+    .btn{padding:9px 12px}
+    .btn.sm{padding:6px 10px;font-size:12px}
+    .notice{font-size:12px;padding:9px 11px;align-items:flex-start;margin:0 10px 10px}
+    .legend{gap:8px;font-size:10.5px}
+    .as{padding:9px 10px}
+    .ov{display:none;padding:0;align-items:flex-end}
+    .ov.on{display:flex}
+    .modal{width:100%;max-width:none;border-radius:16px 16px 0 0;margin:0;max-height:86vh;
+      padding:14px 14px calc(16px + env(safe-area-inset-bottom));overflow:auto}
+    .modal h2{font-size:15px}
+    .modal .desc{font-size:12px}
+    .form,.map{grid-template-columns:1fr}
+    .kv{grid-template-columns:74px 1fr}
+    .toast{bottom:calc(24px + env(safe-area-inset-bottom))}
+    table.tb{font-size:11.5px}
+    table.tb th,table.tb td{padding:5px 6px}
+    .appmore{display:block}
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">研究生课程表与作业管理<span>交互原型 v0.1</span></div>
+    <select id="semSel"><option>2026–2027 学年 · 秋季学期</option><option>2025–2026 学年 · 春季学期（归档）</option></select>
+    <div class="seg" id="modeSeg">
+      <button class="on" data-m="term">学期课表</button>
+      <button data-m="plan">选课模式</button>
+    </div>
+    <div class="spacer"></div>
+    <span id="btnTerm">
+      <button class="btn" id="btnExcel">导入 Excel 课表</button>
+      <button class="btn" id="btnOcr">截图识别变更</button>
+      <button class="btn pri" id="btnNew">+ 新建作业</button>
+    </span>
+    <span id="btnPlan" style="display:none">
+      <button class="btn" id="btnPlanImp">导入选课清单</button>
+      <button class="btn pri" id="btnExport">导出为正式课表</button>
+    </span>
+  </div>
+
+  <div class="notice" id="changeBar"><span class="dot"></span><span id="changeTxt"></span><span class="spacer"></span><span style="font-size:12px;opacity:.8">点击处理 →</span></div>
+
+  <div class="main">
+    <section class="card">
+      <div class="weekbar" id="planbar" style="display:none">
+        <div><span class="t">选课冲突视图</span> <span class="sub">全学期叠加 · 时间重叠且周次相交的课程归入同一冲突组</span></div>
+        <div class="spacer"></div>
+        <span class="sub" id="pStat"></span>
+      </div>
+      <div class="weekbar" id="weekbar">
+        <button class="btn sm" id="prevW">← 上一周</button>
+        <div><span class="t" id="wTitle">第 1 周</span> <span class="sub" id="wRange"></span></div>
+        <button class="btn sm" id="nextW">下一周 →</button>
+        <button class="btn sm" id="todayW">回到本周</button>
+        <div class="spacer"></div>
+        <span class="sub" id="wStat"></span>
+      </div>
+      <table class="grid" id="grid"></table>
+      <div id="pendingBox"></div>
+      <div class="legend">
+        <span><i style="background:#dc2626"></i>角标 = 待办作业数</span>
+        <span><i style="background:#f59e0b"></i>左侧标记 = 存在待确认变更</span>
+        <span><i style="background:#9ca3af;border:1px dashed #6b7280"></i>虚线 = 组会 / 讲座等非课程事件</span>
+        <span>灰显 = 本周不上（周次不匹配）</span>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div id="sideTerm">
+        <div class="card">
+          <div class="hd"><h3>本周作业</h3><span class="n" id="asCount"></span></div>
+          <div id="asList"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>本周概览</h3></div>
+          <div id="stats"></div>
+        </div>
+      </div>
+      <div id="sidePlan" style="display:none">
+        <div class="card">
+          <div class="hd"><h3>选课统计</h3></div>
+          <div id="pStats"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>时间冲突组</h3><span class="n" id="pGrpN"></span></div>
+          <div id="pGroups"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>周次错开（不算冲突）</h3></div>
+          <div id="pNear"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>待定 / 不排课</h3><span class="n" id="pPendN"></span></div>
+          <div id="pPend"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="ov" id="ov">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="xlsx.full.min.js"></script>
+<script>
+const PAL=[{bg:'#eef2ff',bd:'#6366f1',tx:'#3730a3'},{bg:'#ecfdf5',bd:'#10b981',tx:'#065f46'},
+{bg:'#fff7ed',bd:'#f59e0b',tx:'#92400e'},{bg:'#fdf2f8',bd:'#ec4899',tx:'#9d174d'},
+{bg:'#f0f9ff',bd:'#0ea5e9',tx:'#075985'},{bg:'#fef2f2',bd:'#ef4444',tx:'#991b1b'},
+{bg:'#f5f3ff',bd:'#8b5cf6',tx:'#5b21b6'},{bg:'#f8fafc',bd:'#64748b',tx:'#334155'}];
+const SEM_START='2026-09-07', TOTAL_WEEKS=18;
+const NOW=new Date(2026,8,13,10,20);
+const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+const PERIODS=[{k:'morning',n:'上午',t:'08:30–11:30'},{k:'afternoon',n:'下午',t:'14:00–17:00'},{k:'evening',n:'晚上',t:'18:00–21:00'}];
+
+const courses=[
+ {id:'c1',name:'云计算技术及应用',code:'01714330',teacher:'莫同',credit:3,cat:'专业选修',color:0},
+ {id:'c2',name:'开源软件开发基础及实践',code:'01711990',teacher:'荆琦',credit:2,cat:'专业选修',color:1},
+ {id:'c3',name:'自然辩证法概论（1班）',code:'01710101',teacher:'朱效民',credit:1,cat:'公共必修',color:2},
+ {id:'c4',name:'互联网软件开发技术与实践',code:'01711930',teacher:'张齐勋',credit:2,cat:'专业选修',color:3},
+ {id:'c5',name:'中国式现代化的理论与实践（1班）',code:'22105348',teacher:'习院',credit:2,cat:'公共必修',color:4},
+ {id:'c6',name:'算法分析与设计（03班）',code:'01711100',teacher:'李聪',credit:3,cat:'专业选修',color:5},
+ {id:'c7',name:'金融产品创新',code:'01719220',teacher:'王德全',credit:2,cat:'专业选修',color:6},
+ {id:'c8',name:'素质教育与前沿技术（01班）',code:'01710042',teacher:'素质教育教研室',credit:2,cat:'公共必修',color:7},
+ {id:'c9',name:'综合实践（1班）-软件工程与数据技术系',code:'01711870',teacher:'导师小组',credit:2,cat:'必修',color:0,pending:true}
+];
+const slots=[
+ {id:'s1',c:'c1',d:0,p:'afternoon',b:'大兴',r:'1401',w:'1-18',weeks:range(1,18),mode:'线下'},
+ {id:'s2',c:'c2',d:1,p:'morning',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
+ {id:'s3',c:'c3',d:1,p:'afternoon',b:'大兴',r:'报告厅',w:'2-18',weeks:range(2,18),mode:'线下',st:'13:00',en:'17:00'},
+ {id:'s4',c:'c4',d:2,p:'morning',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
+ {id:'s5',c:'c5',d:2,p:'afternoon',b:'大兴',r:'报告厅',w:'单周',weeks:odd(1,17),mode:'线下',st:'13:00',en:'17:00'},
+ {id:'s6',c:'c6',d:3,p:'afternoon',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
+ {id:'s7',c:'c7',d:4,p:'afternoon',b:'大兴',r:'3202',w:'1-18',weeks:range(1,18),mode:'线下'},
+ {id:'s8',c:'c8',d:5,p:'morning',b:'大兴',r:'3204 / 报告厅',w:'1-18',weeks:range(1,18),mode:'线下'}
+];
+const events=[];
+const PIV={morning:[510,690],afternoon:[840,1020],evening:[1080,1260]};
+function T(d,s,e,w,we){return{d:d,start:s,end:e,weeks:w,wk:we}}
+/*PLAN_DATA_START*/
+let planCourses=[
+{id:'p1',code:'22105348',name:'中国式现代化的理论与实践',teacher:'习院',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'1班关键软件、人工智能、软件工程、新兴交叉学科四个方向上课，单周，13:00-17:00，每次课四课时。选课由学院、研究',status:'已选',room:'报告厅',times:[T(2,'13:00','17:00',odd(1,17),'单周')]},
+{id:'p2',code:'22105348',name:'中国式现代化的理论与实践',teacher:'习院',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'2班集成电路工程、金融科技、网络与信息安全、高端芯片四个方向上课，双周，13:00-17:00，每次课四课时。选课由学院',status:'候选',room:'报告厅',times:[T(2,'13:00','17:00',even(2,18),'双周')]},
+{id:'p3',code:'01710101',name:'自然辩证法概论（1班）',teacher:'朱效民',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'限关键软件、人工智能、软件工程、新兴交叉学科方向选课，9月15日开课，每次课4课时，1班授课时间为13:00-17:00',status:'已选',room:'报告厅',times:[T(1,'13:00','17:00',range(1,18),'1-18周')]},
+{id:'p4',code:'01710101',name:'自然辩证法概论（2班）',teacher:'—',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'限集成电路工程、金融科技、网络与信息安全、高端芯片方向选课，9月15日开课，每次课4课时，2班授课时间为18:00-22',status:'候选',room:'报告厅',times:[T(1,'18:00','22:00',range(1,18),'1-18周')]},
+{id:'p5',code:'01711870',name:'综合实践（1班）-软件工程与数据技术系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'软件工程、人工智能方向学生选课',status:'已选',room:'',times:[]},
+{id:'p6',code:'01711870',name:'综合实践（2班）-网络软件与系统安全系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'丁玉',note:'网络与信息安全方向学生选课',status:'候选',room:'',times:[]},
+{id:'p7',code:'01711870',name:'综合实践（3班）-集成电路与智能系统系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'丁玉',note:'集成电路工程方向学生选课',status:'候选',room:'',times:[]},
+{id:'p8',code:'01711870',name:'综合实践（4班）-金融信息与工程管理系',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'梁洁',note:'金融科技方向学生选课',status:'候选',room:'',times:[]},
+{id:'p9',code:'1710110',name:'英语（1班）',teacher:'李博婷',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'人工智能、软件工程方向学生选课',status:'候选',room:'3305',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p10',code:'01710110',name:'英语（2班）',teacher:'李博婷',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'集成电路工程、金融科技、网络与信息安全学生选课',status:'候选',room:'3305',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p11',code:'01710110',name:'英语（3班）',teacher:'高志军',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'学术写作，仅限关键软件、高端芯片、新兴交叉学科方向选修',status:'候选',room:'3201',times:[T(3,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p12',code:'01710042',name:'素质教育与前沿技术-01班',teacher:'素质教育教研室',hours:32,credit:2.0,cat:'选修',admin:'赵泽宇',note:'',status:'已选',room:'3204|报告厅',times:[T(5,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p13',code:'01710043',name:'职业道德与素养-01班',teacher:'素质教育教研室',hours:16,credit:1.0,cat:'选修',admin:'赵泽宇',note:'26级新生勿选',status:'候选',room:'3204|报告厅',times:[T(5,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p14',code:'01712630',name:'数字图象处理',teacher:'曹喜信',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p15',code:'01715340',name:'微纳系统集成',teacher:'王振宇',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(1,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p16',code:'01714353',name:'集成电路器件与工艺',teacher:'黎明、黄芊芊、吴恒',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p17',code:'01713990',name:'集成电路前沿技术导论',teacher:'刘力锋、王玮、崔小欣',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p18',code:'01715200',name:'数字集成电路设计',teacher:'于敦山',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p19',code:'01715890',name:'微电子前沿技术专题',teacher:'时广轶',hours:16,credit:1.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(5,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p20',code:'01714020',name:'物联网与智慧系统',teacher:'王振宇',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p21',code:'01713120',name:'数字集成电路设计实践',teacher:'曹健',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'适合集成电路工程方向学生选修',status:'候选',room:'1202',times:[T(2,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p22',code:'01715220',name:'模拟集成电路设计与分析',teacher:'时广轶',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3203',times:[T(4,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p23',code:'01714354',name:'大语言模型与应用实践',teacher:'俞敬松',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3201',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p24',code:'01711100',name:'算法分析与设计-01班',teacher:'张齐勋',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向金融科技方向、新兴交叉学科-数字人文社科方向',status:'候选',room:'3202',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p25',code:'01711100',name:'算法分析与设计-02班',teacher:'孙圣力',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向技术类方向',status:'候选',room:'3204',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p26',code:'01711100',name:'算法分析与设计-03班',teacher:'李聪',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'面向技术类方向',status:'已选',room:'3201',times:[T(3,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p27',code:'01714822',name:'Agent智能体开发与实践',teacher:'夏敏',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3201',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p28',code:'01700145',name:'学科专著研读-01班',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'仅限关键软件、高端芯片、新兴交叉学科方向选修',status:'候选',room:'',times:[]},
+{id:'p29',code:'01710167',name:'科研实践（I）',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'仅限25级关键软件、高端芯片方向选修、新兴交叉学科方向选修',status:'候选',room:'',times:[]},
+{id:'p30',code:'01710166',name:'科研实践（II）',teacher:'导师小组',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'仅限24级关键软件、高端芯片方向选修',status:'候选',room:'',times:[]},
+{id:'p31',code:'01719960',name:'Python-01班',teacher:'夏敏',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'双周上课',status:'候选',room:'3204',times:[T(2,'14:00','17:00',even(2,18),'双周')]},
+{id:'p32',code:'01719960',name:'Python-02班',teacher:'方跃坚',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'双周上课',status:'候选',room:'3202',times:[T(2,'14:00','17:00',even(2,18),'双周')]},
+{id:'p33',code:'01712460',name:'大数据分析技术与实践-01班',teacher:'贾统',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'仅限关键软件、新兴交叉学科方向选修',status:'候选',room:'3202',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p34',code:'01710285',name:'操作系统与虚拟化安全',teacher:'沈晴霓',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'仅限关键软件、新兴交叉学科方向选修',status:'候选',room:'3202',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p35',code:'01711930',name:'互联网软件开发技术与实践',teacher:'张齐勋',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'已选',room:'3204',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p36',code:'01711990',name:'开源软件开发基础及实践',teacher:'荆琦',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'已选',room:'3202',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p37',code:'01714330',name:'云计算技术及应用',teacher:'莫同',hours:48,credit:3.0,cat:'选修',admin:'许博蕊',note:'',status:'已选',room:'3204',times:[T(0,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p38',code:'01710190',name:'JAVA编程技能训练',teacher:'褚伟杰',hours:16,credit:1.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'1202',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p39',code:'01704860',name:'深度强化学习',teacher:'周立新',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3201',times:[T(3,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p40',code:'01718120',name:'机器学习',teacher:'蒋严冰、李素科',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3204',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p41',code:'01711510',name:'软件实现技术',teacher:'蒋严冰',hours:32,credit:2.0,cat:'选修',admin:'许博蕊',note:'',status:'候选',room:'3204',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p42',code:'01719140',name:'金融数据分析',teacher:'李素科',hours:48,credit:3.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(3,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p43',code:'01719320',name:'面向金融的Python',teacher:'褚伟杰',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(2,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p44',code:'01716440',name:'金融营销学',teacher:'赵占波',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'1208',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p45',code:'01719680',name:'金融科技理论与实践',teacher:'黄嵩',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3204',times:[T(1,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p46',code:'01719890',name:'量化投资策略与技术',teacher:'刘宏志',hours:48,credit:3.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3203',times:[T(0,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p47',code:'01716420',name:'机器学习',teacher:'李伟平',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'仅限金融信息与工程管理系、新兴交叉学科（数字人文社科方向）选修',status:'候选',room:'3204',times:[T(4,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p48',code:'01719270',name:'金融工程与风险管理',teacher:'李昕旸',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3204',times:[T(3,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p49',code:'01714819',name:'大模型在金融中的应用实践',teacher:'李素科',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3202',times:[T(2,'18:00','21:00',range(1,18),'1-18周')]},
+{id:'p50',code:'01714812',name:'数字经济',teacher:'倪宣明',hours:16,credit:1.0,cat:'选修',admin:'梁洁',note:'',status:'候选',room:'3201',times:[T(1,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p51',code:'01719220',name:'金融产品创新',teacher:'王德全',hours:32,credit:2.0,cat:'选修',admin:'梁洁',note:'',status:'已选',room:'3202',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p52',code:'01712190',name:'人工智能模型安全',teacher:'李聪',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3202',times:[T(1,'14:00','17:00',range(1,18),'1-18周')]},
+{id:'p53',code:'01712250',name:'应用密码学',teacher:'关志',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3201',times:[T(4,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p54',code:'01712430',name:'操作系统与虚拟化安全',teacher:'沈晴霓',hours:48,credit:3.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3201',times:[T(0,'08:30','11:30',range(1,18),'1-18周')]},
+{id:'p55',code:'01716960',name:'网络空间安全导论',teacher:'沈晴霓、文伟平、方跃坚、李聪、孙惠平',hours:32,credit:2.0,cat:'选修',admin:'丁玉',note:'',status:'候选',room:'3201',times:[T(4,'14:00','17:00',range(1,18),'1-18周')]}
+];
+/*PLAN_DATA_END*/
+let assigns=[
+ {id:'a1',c:'c1',week:1,title:'作业一：K8s 集群部署与文档',type:'课后作业',content:'在本地或云环境部署一个最小可用 Kubernetes 集群，提交部署文档与截图。',method:'学习平台',target:'教学平台 → 课程作业 → HW1',material:'《云计算：概念、技术与架构》第 3 章 + 课件 P22–40',due:'2026-09-21 23:59',hours:4,weight:20,status:'未开始',prio:'高'},
+ {id:'a2',c:'c6',week:1,title:'分治与动态规划习题（含证明）',type:'课后作业',content:'完成第 2、3 章习题，要求给出递归式推导与正确性证明。',method:'学习平台',target:'教学平台 → 课程作业',material:'《算法设计与分析》第 2–3 章 + 课件 P15–33',due:'2026-09-17 23:59',hours:5,weight:25,status:'进行中',prio:'紧急'},
+ {id:'a3',c:'c2',week:2,title:'为开源项目提交第一个 PR',type:'代码',content:'Fork 指定仓库，修复一个 good-first-issue，按项目规范提交 PR 并关联 issue。',method:'代码仓库',target:'git@github.com:pku-oss/course-2026.git',material:'Git 使用手册第 4 章 + 课件 P8–20',due:'2026-09-24 23:59',hours:6,weight:15,status:'未开始',prio:'中'},
+ {id:'a4',c:'c5',week:3,title:'调研报告：中国式现代化专题',type:'阅读报告',content:'围绕指定专题撰写 1500 字调研报告，要求引用不少于 5 篇文献。',method:'学习平台',target:'习院平台 → 作业提交',material:'课程讲义 第 2 讲 + 指定阅读包 P1–45',due:'2026-09-30 23:59',hours:6,weight:20,status:'未开始',prio:'低'}
+];
+let changes=[];
+
+function range(a,b){const r=[];for(let i=a;i<=b;i++)r.push(i);return r}
+function odd(a,b){return range(a,b).filter(x=>x%2===1)}
+function even(a,b){return range(a,b).filter(x=>x%2===0)}
+function curWeek(){const s=new Date(SEM_START+'T00:00:00');const d=new Date(NOW.getFullYear(),NOW.getMonth(),NOW.getDate());
+  return Math.min(TOTAL_WEEKS,Math.max(1,Math.floor((d-s)/6048e5)+1))}
+function weekDates(w){const s=new Date(SEM_START+'T00:00:00');s.setDate(s.getDate()+(w-1)*7);
+  return Array.from({length:7},(_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})}
+function course(id){return courses.find(c=>c.id===id)}
+function parseDue(s){const m=s.match(/(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2})/);return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5])}
+function countdown(s){const d=parseDue(s),ms=d-NOW;if(ms<0)return{t:'已逾期',c:'d'};
+  const h=ms/36e5;if(h<24)return{t:Math.round(h)+' 小时后',c:'d'};
+  const dd=Math.floor(h/24);return{t:dd+' 天后',c:dd<=1?'d':'far'}}
+
+let MODE='term';
+let W=curWeek();
+
+/* ============ 与教务排课表核对 ============ */
+function normName(s){let x=String(s);
+  x=x.replace(/[（(]\s*0*(\d+)\s*班\s*[）)]/g,'$1班').replace(/[-–—]\s*0*(\d+)\s*班/g,'$1班');
+  x=x.replace(/\s+/g,'').replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g,'').replace(/0+(\d)/g,'$1');return x}
+function normRoom(s){return String(s).replace(/\s+/g,'').replace(/[、,，/]/g,'|').replace(/\|+/g,'|').replace(/^\||\|$/g,'')}
+function officialOf(name){const n=normName(name);
+  return planCourses.find(p=>{const pn=normName(p.name);return pn&&(pn===n||pn.includes(n)||n.includes(pn))})}
+function checkMismatch(){
+  const out=[];
+  slots.forEach(s=>{
+    const c=course(s.c),o=officialOf(c.name);
+    if(!o)return;
+    const mine=normRoom(s.r),of=normRoom(o.room);
+    if(!of)return;
+    if(mine!==of&&!mine.includes(of)&&!of.includes(mine))
+      out.push({slot:s,course:c,mine:s.r,official:o.room,note:o.note});
+  });
+  return out;
+}
+let MM=[];
+function openMismatch(){
+  open(`<h2>与教务排课表核对</h2><div class="desc">来源：电子信息秋季排课表（2026.9.7–2027.1.10，共 18 周）。以下教室与你导入的课表不一致。</div>
+  <table class="tb"><tr><th>课程</th><th>你的课表</th><th>教务排课表</th><th>教务备注</th><th>处理</th></tr>
+  ${MM.map((m,i)=>`<tr><td>${m.course.name}</td><td><span style="color:#b45309">${m.mine}</span></td><td>${m.official}</td>
+   <td style="color:var(--tx3)">${m.note||'—'}</td>
+   <td><select id="mm${i}" style="font-size:12px;padding:3px 6px"><option value="official">采用教务教室</option><option value="mine">保留我的</option></select></td></tr>`).join('')}
+  </table>
+  <div class="foot"><button class="btn" onclick="closeM()">稍后</button><button class="btn pri" onclick="applyMismatch()">应用</button></div>`);
+}
+function applyMismatch(){
+  let k=0;
+  MM.forEach((m,i)=>{const sel=document.getElementById('mm'+i);if(sel&&sel.value==='official'){m.slot.r=m.official;k++}});
+  closeM();render();toast(k?`已更新 ${k} 处教室为教务表值`:'已保留你的教室');
+}
+function renderTerm(){
+  document.getElementById('grid').className='grid';
+  MM=checkMismatch();
+  const dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
+  document.getElementById('wTitle').textContent=`第 ${W} 周`;
+  document.getElementById('wRange').textContent=`${dates[0]} — ${dates[6]}${isCur?' · 本周':''}`;
+  let html='<thead><tr><th style="width:96px">时间</th>';
+  DAYS.forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
+  html+='</tr></thead><tbody>';
+  PERIODS.forEach(p=>{
+    html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
+    for(let i=0;i<7;i++){
+      const isToday=isCur&&i===todayIdx;
+      const isNow=isToday&&((p.k==='morning'&&NOW.getHours()<12)||(p.k==='afternoon'&&NOW.getHours()>=12&&NOW.getHours()<17)||(p.k==='evening'&&NOW.getHours()>=17));
+      html+=`<td class="cell ${isToday?'today':''} ${isNow?'cur':''}">`;
+      slots.filter(s=>s.d===i&&s.p===p.k).forEach(s=>{
+        const c=course(s.c),pal=PAL[c.color];const active=s.weeks.includes(W);
+        const n=assigns.filter(a=>a.c===s.c&&a.week===W&&a.status!=='已提交'&&a.status!=='已批改').length;
+        const ch=changes.find(x=>x.slot===s.id&&x.status==='待确认');
+        const mm=MM.find(x=>x.slot.id===s.id);
+        html+=`<div class="cls" style="background:${active?pal.bg:'#f3f4f6'};border-left-color:${active?pal.bd:'#d1d5db'};color:${active?pal.tx:'#9ca3af'};opacity:${active?1:.55}" onclick="openCourse('${c.id}')">
+          ${ch?'<span class="flag">变更</span>':mm?'<span class="flag">教室?</span>':''}
+          ${n?`<span class="badge">${n}</span>`:''}
+          <span class="nm">${c.name}</span>
+          <span class="mt">${c.teacher} · ${s.b} ${s.r}</span>
+          <span class="wk">${s.w}</span></div>`;
+      });
+      events.filter(e=>e.d===i&&e.p===p.k&&e.weeks.includes(W)).forEach(e=>{
+        html+=`<div class="ev" onclick="toast('非课程事件：${e.title}｜${e.loc}')"><b>${e.title}</b>${e.loc} · ${e.w}</div>`;
+      });
+      html+='</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('grid').innerHTML=html;
+
+  const list=assigns.filter(a=>a.week===W).sort((a,b)=>parseDue(a.due)-parseDue(b.due));
+  document.getElementById('asCount').textContent=`${list.length} 条 · 待办 ${list.filter(a=>a.status!=='已提交'&&a.status!=='已批改').length}`;
+  document.getElementById('asList').innerHTML=list.length?list.map(a=>{
+    const c=course(a.c),pal=PAL[c.color],cd=countdown(a.due);const done=a.status==='已提交'||a.status==='已批改';
+    return `<button class="as" onclick="openAs('${a.id}')">
+      <div class="r1"><span class="pill" style="background:${pal.bg};border-color:${pal.bd};color:${pal.tx}">${c.name}</span>
+      <span class="pill">${a.type}</span>${done?'<span class="pill g">'+a.status+'</span>':''}
+      <span class="spacer" style="flex:1"></span><span class="cd ${cd.c}">${done?'':cd.t}</span></div>
+      <div class="tt">${a.title}</div>
+      <div class="r2"><span>${a.method}</span><span>${a.material}</span></div>
+      <div class="r2" style="margin-top:3px"><span>截止 ${a.due}</span><span>预估 ${a.hours}h</span><span>占比 ${a.weight}%</span></div>
+    </button>`}).join(''):'<div class="empty">本周暂无作业</div>';
+
+  const todo=list.filter(a=>a.status!=='已提交'&&a.status!=='已批改');
+  const hrs=todo.reduce((s,a)=>s+(+a.hours||0),0);
+  const cls=slots.filter(s=>s.weeks.includes(W)).length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><span>本周课程</span><b>${cls} 门次</b></div>
+    <div class="stat"><span>待办作业</span><b>${todo.length} 条</b></div>
+    <div class="stat"><span>预估工时</span><b>${hrs} 小时</b></div>
+    <div class="stat"><span>本周学分负荷</span><b>${[...new Set(slots.filter(s=>s.weeks.includes(W)).map(s=>s.c))].reduce((s,id)=>s+course(id).credit,0)} 学分</b></div>
+    <div class="stat"><span>已提交</span><b>${list.length-todo.length} 条</b></div>`;
+  document.getElementById('wStat').textContent=`本周共 ${cls} 门次课 · ${list.length} 项作业`;
+
+  const pendC=courses.filter(c=>!slots.some(s=>s.c===c.id));
+  document.getElementById('pendingBox').innerHTML=pendC.length?
+    `<div class="card" style="margin-top:10px;background:#fffdf7;border-color:#fde68a">
+      <div class="hd"><h3>待定 / 未排课</h3><span class="n">${pendC.length} 门</span></div>
+      ${pendC.map(c=>`<div class="noft"><b>${c.name}</b> · ${c.teacher} · ${c.credit} 学分<br><span style="color:var(--tx3)">教务表中该课程未排具体时间，等系里通知后补录</span></div>`).join('')}
+    </div>`:'';
+
+  MM=checkMismatch();
+  const pend=changes.filter(c=>c.status==='待确认');
+  const bar=document.getElementById('changeBar');
+  if(MM.length){bar.style.display='flex';bar.className='notice';
+    document.getElementById('changeTxt').innerHTML=`<b>${MM.length} 处教室与教务排课表不一致</b>：${MM.map(m=>`${m.course.name}（你的 ${m.mine} → 教务 ${m.official}）`).join('；')}`;}
+  else if(pend.length){
+    `<b>${pend.length} 条待确认变更</b>：${pend.map(c=>course(slots.find(s=>s.id===c.slot).c).name+'（'+c.type+' '+c.old+' → '+c.nw+'）').join('；')}`;}
+  else{bar.style.display='flex';bar.className='notice ok';document.getElementById('changeTxt').textContent='全部变更已处理，课表与教务通知一致';}
+}
+
+/* ============ 选课模式：冲突检测 ============ */
+function toMin(s){const p=s.split(':');return (+p[0])*60+(+p[1])}
+function tOverlap(a,b){if(a.d!==b.d)return false;return toMin(a.start)<toMin(b.end)&&toMin(b.start)<toMin(a.end)}
+function wOverlap(a,b){return a.weeks.some(w=>b.weeks.includes(w))}
+function periodsOf(t){const s=toMin(t.start),e=toMin(t.end);
+  return Object.keys(PIV).filter(k=>s<PIV[k][1]&&PIV[k][0]<e)}
+function winText(a,b){return `${DAYS[a.d]} ${toMin(a.start)<toMin(b.start)?a.start:b.start}–${toMin(a.end)>toMin(b.end)?a.end:b.end}`}
+function analyze(){
+  const sess=[];planCourses.forEach(c=>c.times.forEach((t,i)=>sess.push({key:c.id+'#'+i,cid:c.id,t:t,c:c})));
+  const par={};sess.forEach(s=>par[s.key]=s.key);
+  const find=x=>{while(par[x]!==x){par[x]=par[par[x]];x=par[x]}return x};
+  const uni=(a,b)=>{a=find(a);b=find(b);if(a!==b)par[b]=a};
+  const near=[];
+  for(let i=0;i<sess.length;i++)for(let j=i+1;j<sess.length;j++){
+    const A=sess[i],B=sess[j];
+    if(A.cid===B.cid)continue;
+    if(tOverlap(A.t,B.t)){ if(wOverlap(A.t,B.t))uni(A.key,B.key); else near.push([A,B]); }
+  }
+  const buckets={};sess.forEach(s=>{const r=find(s.key);(buckets[r]=buckets[r]||[]).push(s)});
+  const gid={};const groups=[];let n=0;
+  Object.values(buckets).forEach(g=>{ if(g.length>1){const id='G'+(++n);g.forEach(s=>gid[s.key]=id);groups.push({id:id,sess:g})} });
+  return {sess:sess,gid:gid,groups:groups,near:near};
+}
+function renderPlan(){
+  const A=analyze();
+  document.getElementById('grid').className='grid plan';
+  let html='<thead><tr><th style="width:96px">时间</th>';
+  DAYS.forEach(d=>{html+=`<th>${d}</th>`});
+  html+='</tr></thead><tbody>';
+  PERIODS.forEach(p=>{
+    html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
+    for(let d=0;d<7;d++){
+      html+='<td class="cell">';
+      const here=A.sess.filter(s=>s.t.d===d&&periodsOf(s.t).includes(p.k));
+      const grp={};const single=[];
+      here.forEach(s=>{ A.gid[s.key]?(grp[A.gid[s.key]]=grp[A.gid[s.key]]||[]).push(s):single.push(s) });
+      Object.keys(grp).sort().forEach(k=>{
+        const members=grp[k];
+        html+=`<div class="cgrp"><div class="gh"><span>时间冲突 ×${members.length}</span><span style="font-weight:400;opacity:.8">${k}</span></div>
+        ${members.map(s=>pcard(s,A)).join('')}</div>`;
+      });
+      single.forEach(s=>{html+=pcard(s,A)});
+      html+='</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('grid').innerHTML=html;
+
+  const none=planCourses.filter(c=>c.times.every(t=>periodsOf(t).length===0));
+  if(none.length)toast(`${none.length} 门课程时段未匹配，已置入未归类：${none.map(c=>c.name).join('、')}`);
+
+  const sel=planCourses.filter(c=>c.status==='已选'),out=planCourses.filter(c=>c.status==='排除');
+  const cand=planCourses.filter(c=>c.status==='候选');
+  document.getElementById('pStat').textContent=`候选 ${cand.length} · 已选 ${sel.length} · 排除 ${out.length}`;
+  document.getElementById('pStats').innerHTML=`
+    <div class="stat"><span>清单课程总数</span><b>${planCourses.length} 门</b></div>
+    <div class="stat"><span>已选</span><b>${sel.length} 门 / ${sel.reduce((s,c)=>s+c.credit,0)} 学分</b></div>
+    <div class="stat"><span>候选待定</span><b>${cand.length} 门</b></div>
+    <div class="stat"><span>已排除</span><b>${out.length} 门</b></div>
+    <div class="stat"><span>冲突组</span><b><span style="color:#b91c1c">${A.groups.length} 组</span></b></div>`;
+
+  document.getElementById('pGrpN').textContent=`${A.groups.length} 组`;
+  document.getElementById('pGroups').innerHTML=A.groups.length?A.groups.map(g=>{
+    const cs=[...new Set(g.sess.map(s=>s.cid))].map(id=>planCourses.find(c=>c.id===id));
+    const w=winText(g.sess[0].t,g.sess[1].t);
+    const weeks=g.sess.map(s=>s.t.wk).filter((v,i,a)=>a.indexOf(v)===i).join(' ∩ ');
+    return `<div class="grpline"><div class="gt">${g.id} · ${w} · ${weeks}</div>
+      <div style="color:#7f1d1d">共 ${cs.length} 门互斥，只能选其一</div>
+      <div class="gc">${cs.map(c=>`<span class="${c.status==='已选'?'sel':c.status==='排除'?'out':''}" onclick="openPlan('${c.id}')">${c.name}</span>`).join('')}</div></div>`;
+  }).join(''):'<div class="empty">当前清单没有时间冲突</div>';
+
+  const pendP=planCourses.filter(c=>!c.times.length);
+  document.getElementById('pPendN').textContent=pendP.length+' 门';
+  document.getElementById('pPend').innerHTML=pendP.length?pendP.map(c=>
+    `<div class="noft" style="cursor:pointer" onclick="openPlan('${c.id}')"><b>${c.name}</b>${c.status==='已选'?' <span class="pill g">已选</span>':''}
+     <br><span style="color:var(--tx3)">${c.teacher} · ${c.credit} 学分 · 教务员 ${c.admin}</span></div>`).join('')
+    :'<div class="empty">全部课程均已排定时间</div>';
+
+  const seen={};const nm=[];
+  A.near.forEach(([a,b])=>{const k=[a.cid,b.cid].sort().join('-');if(!seen[k]){seen[k]=1;nm.push([a,b])}});
+  document.getElementById('pNear').innerHTML=nm.length?nm.map(([a,b])=>
+    `<div class="noft">${a.c.name} × ${b.c.name}<br><span style="color:var(--tx3)">时间重叠 ${a.t.start}–${a.t.end}，但周次 ${a.t.wk} 与 ${b.t.wk} 无交集 → 可同时选</span></div>`).join('')
+    :'<div class="empty">暂无周次错开的课程对</div>';
+}
+function pcard(s,A){
+  const c=s.c,st=c.status==='已选'?'sel':c.status==='排除'?'out':'';
+  const chip=c.status==='已选'?'已选':c.status==='排除'?'排除':'候选';
+  return `<div class="pcard ${st}" onclick="openPlan('${c.id}')">
+    <span class="chip">${chip}</span>
+    <span class="nm">${c.name}</span>
+    <span class="mt">${s.t.start}-${s.t.end} · ${c.teacher} · ${c.credit}学分 · ${c.cat}</span>
+    <span class="mt" style="color:var(--tx3)">${c.room||''} ${s.t.wk}</span></div>`;
+}
+function openPlan(id){
+  const c=planCourses.find(x=>x.id===id),A=analyze();
+  const mySess=A.sess.filter(s=>s.cid===id);
+  const gids=[...new Set(mySess.map(s=>A.gid[s.key]).filter(Boolean))];
+  const blocks=[];
+  gids.forEach(g=>{
+    const gobj=A.groups.find(x=>x.id===g);
+    blocks.push(`<div class="grpline"><div class="gt">${g} · 与下列课程互斥</div>
+      ${[...new Set(gobj.sess.filter(s=>s.cid!==id).map(s=>s.cid))].map(cid=>{
+        const o=planCourses.find(x=>x.id===cid),os=gobj.sess.find(s=>s.cid===cid);
+        return `<div style="font-size:12px">· ${o.name}（${o.teacher}）— 重叠 ${winText(mySess[0].t,os.t)}，${os.t.wk}</div>`}).join('')}</div>`);
+  });
+  open(`<h2>${c.name}</h2><div class="desc">${c.code} · ${c.cat} · ${c.credit} 学分 · ${c.teacher} · 当前状态：${c.status}</div>
+  <div class="kv">
+    <div class="k">上课时间</div><div>${c.times.map(t=>`${DAYS[t.d]} ${t.start}–${t.end}（${t.wk}）`).join('<br>')}</div>
+    <div class="k">地点</div><div>${c.room||'—'}</div>
+    <div class="k">冲突情况</div><div>${gids.length?`属于 ${gids.length} 个冲突组`:'与其他课程无时间冲突'}</div>
+  </div>
+  ${blocks.join('')}
+  <div class="foot"><button class="btn" onclick="closeM()">关闭</button>
+    ${c.status==='已选'?`<button class="btn" onclick="setPlan('${id}','候选')">取消选择</button>`
+      :`<button class="btn pri" onclick="setPlan('${id}','已选')">选这门</button>`}
+    ${c.status==='排除'?'':`<button class="btn" onclick="setPlan('${id}','排除')">排除</button>`}</div>`);
+}
+function setPlan(id,st){
+  const c=planCourses.find(x=>x.id===id);
+  if(st==='已选'){
+    const A=analyze();const myG=A.sess.filter(s=>s.cid===id).map(s=>A.gid[s.key]).filter(Boolean);
+    const drop=[];
+    A.groups.filter(g=>myG.includes(g.id)).forEach(g=>g.sess.forEach(s=>{if(s.cid!==id&&s.c.status!=='排除'){s.c.status='排除';drop.push(s.c.name)}}));
+    c.status='已选';
+    closeM();render();toast(drop.length?`已选「${c.name}」，同组 ${drop.length} 门自动排除：${drop.join('、')}`:`已选「${c.name}」`);
+  }else{c.status=st;closeM();render();toast(`「${c.name}」标记为${st}`)}
+}
+function openPlanImport(){
+  const sample=planCourses.map(c=>`${c.name} | ${c.code} | ${c.teacher} | ${DAYS[c.times[0].d]} ${c.times[0].start}-${c.times[0].end} | ${c.room} | ${c.times[0].wk} | ${c.credit}`).join('\n');
+  open(`<h2>导入选课清单</h2><div class="desc">每行一门课，字段用 <b>|</b> 分隔（也支持制表符 / 多空格 / 直接从 Excel 粘贴）。必需：课程名 + 上课时间；可含多个时间，用 ；分隔。</div>
+  <textarea id="pin" rows="14" style="width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.7">${sample}</textarea>
+  <div class="sec">解析规则</div>
+  <div style="font-size:12px;color:var(--tx2)">
+    · 时间写法：<b>周一 08:30-11:30</b> 或 <b>周一 上午</b>；多个时间：<b>周一 08:30-11:30；周三 14:00-17:00</b><br>
+    · 周次写法：<b>1-16周</b> / <b>9-16</b> / <b>单周</b> / <b>双周</b>，缺省按 1-18 周<br>
+    · 冲突判定：同一天时间区间相交 <b>且</b> 周次有交集，才计为冲突
+  </div>
+  <div class="foot"><button class="btn" onclick="closeM()">取消</button><button class="btn pri" onclick="doPlanImport()">解析并生成冲突视图</button></div>`);
+}
+function doPlanImport(){
+  const text=document.getElementById('pin').value;const out=[];let n=0;
+  const DM={'一':0,'二':1,'三':2,'四':3,'五':4,'六':5,'日':6,'天':6};
+  const PM={morning:['08:30','11:30'],afternoon:['14:00','17:00'],evening:['18:00','21:00']};
+  text.split(/\n+/).forEach(line=>{
+    line=line.trim();if(!line||line.startsWith('#'))return;
+    const p=line.split(/[|\t]|\s{2,}/).map(s=>s.trim()).filter(Boolean);
+    if(p.length<2)return;
+    const name=p[0];let code='',teacher='',room='',weeks=range(1,18),wk='1-18周',credit=2,timeStr='';
+    p.slice(1).forEach(x=>{
+      if(/周[一二三四五六日天]/.test(x)&&!timeStr)timeStr=x;
+      else if(/^[A-Za-z]{2}\d{3,4}$/.test(x))code=x;
+      else if(/^(第)?\d+\s*[-~至]\s*\d+\s*周?$/.test(x)||/单周|双周/.test(x)){
+        const m=x.match(/(\d+)\s*[-~至]\s*(\d+)/);
+        if(m){weeks=range(+m[1],+m[2]);wk=`${m[1]}-${m[2]}周`}
+        else if(x.includes('单')){weeks=odd(1,17);wk='单周'}else{weeks=even(2,18);wk='双周'}
+      }
+      else if(/^\d+(\.\d)?$/.test(x))credit=+x;
+      else if(!teacher&&/^[\u4e00-\u9fa5A-Za-z.\s]{1,12}$/.test(x)&&!/(楼|厅|室|线上|腾讯|zoom|Zoom)/.test(x))teacher=x;
+      else if(!room)room=x;
+    });
+    const times=[];
+    const re=/(?:周|星期)([一二三四五六日天])\s*(上午|下午|晚上|(\d{1,2}:\d{2})\s*[-~至到]\s*(\d{1,2}:\d{2}))/g;
+    let m;while((m=re.exec(timeStr))){
+      const d=DM[m[1]];
+      let s,e;
+      if(m[2]==='上午')[s,e]=PM.morning;else if(m[2]==='下午')[s,e]=PM.afternoon;
+      else if(m[2]==='晚上')[s,e]=PM.evening;else{s=m[3];e=m[4]}
+      times.push(T(d,s,e,weeks,wk));
+    }
+    if(!times.length)return;
+    out.push({id:'p'+(++n),code:code||'—',name:name,teacher:teacher||'—',credit:credit,cat:'候选课程',status:'候选',times:times,room:room||'—'});
+  });
+  if(!out.length)return toast('未能解析出课程，请检查是否包含课程名与上课时间');
+  planCourses=out;closeM();render();toast(`已导入 ${out.length} 门课程，正在检测时间冲突…`);
+}
+function setMode(m){
+  MODE=m;
+  document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  document.getElementById('btnTerm').style.display=m==='term'?'inline':'none';
+  document.getElementById('btnPlan').style.display=m==='plan'?'inline':'none';
+  document.getElementById('weekbar').style.display=m==='term'?'flex':'none';
+  document.getElementById('planbar').style.display=m==='plan'?'flex':'none';
+  document.getElementById('sideTerm').style.display=m==='term'?'block':'none';
+  document.getElementById('sidePlan').style.display=m==='plan'?'block':'none';
+  document.getElementById('changeBar').style.display=m==='term'?'flex':'none';
+  render();
+}
+function render(){MODE==='term'?renderTerm():renderPlan()}
+
+function openCourse(id){
+  const c=course(id),pal=PAL[c.color];
+  const ss=slots.filter(s=>s.c===id),as=assigns.filter(a=>a.c===id);
+  open(`<h2>${c.name}</h2><div class="desc">${c.code} · ${c.cat} · ${c.credit} 学分 · 任课教师 ${c.teacher}</div>
+   <div class="kv">
+     <div class="k">上课安排</div><div>${ss.map(s=>`${DAYS[s.d]} ${PERIODS.find(p=>p.k===s.p).n}（${PERIODS.find(p=>p.k===s.p).t}）· ${s.b} ${s.r} · ${s.w}`).join('<br>')}</div>
+     <div class="k">授课形式</div><div>${ss[0].mode}${ss[0].mode==='线上'?' · '+ss[0].r:''}</div>
+     <div class="k">作业总数</div><div>${as.length} 条（待办 ${as.filter(a=>a.status!=='已提交'&&a.status!=='已批改').length}）</div>
+   </div>
+   <div class="sec">该课程作业</div>
+   ${as.length?`<table class="tb"><tr><th>标题</th><th>类型</th><th>提交方式</th><th>教材 / PPT 章节</th><th>截止</th><th>状态</th></tr>
+   ${as.map(a=>`<tr><td>${a.title}</td><td>${a.type}</td><td>${a.method}</td><td>${a.material}</td><td>${a.due}</td><td>${a.status}</td></tr>`).join('')}</table>`:'<div class="empty">暂无作业</div>'}
+   <div class="foot"><button class="btn" onclick="closeM()">关闭</button><button class="btn pri" onclick="closeM();openNew('${id}')">为该课程添加作业</button></div>`);
+}
+
+function openAs(id){
+  const a=assigns.find(x=>x.id===id),c=course(a.c),cd=countdown(a.due);
+  open(`<h2>${a.title}</h2><div class="desc">${c.name} · ${c.teacher} · 第 ${a.week} 周布置</div>
+  <div class="kv">
+    <div class="k">课程</div><div>${c.name}（${c.code}）</div>
+    <div class="k">作业类型</div><div>${a.type}</div>
+    <div class="k">课程内容</div><div>${a.content}</div>
+    <div class="k">提交方式</div><div>${a.method}${a.target?' · '+a.target:''}</div>
+    <div class="k">教材/PPT</div><div>${a.material}</div>
+    <div class="k">截止时间</div><div>${a.due} <span class="cd ${cd.c}">${cd.t}</span></div>
+    <div class="k">预估工时</div><div>${a.hours} 小时 · 占总成绩 ${a.weight}%</div>
+    <div class="k">状态</div><div>${a.status} · 优先级 ${a.prio}</div>
+  </div>
+  <div class="foot"><button class="btn" onclick="closeM()">关闭</button>
+  ${a.status==='已提交'||a.status==='已批改'?'':`<button class="btn pri" onclick="submitAs('${a.id}')">标记为已提交</button>`}</div>`);
+}
+
+function submitAs(id){const a=assigns.find(x=>x.id===id);a.status='已提交';closeM();render();toast('已标记为提交：'+a.title)}
+
+function openNew(pre){
+  open(`<h2>新建作业</h2><div class="desc">必填：课程、标题、提交方式、教材/PPT 章节、截止时间</div>
+  <div class="form">
+    <div><label>课程</label><select id="f_c">${courses.map(c=>`<option ${c.id===pre?'selected':''}>${c.name}</option>`).join('')}</select></div>
+    <div><label>作业类型</label><select id="f_t">${['课后作业','阅读报告','文献综述','实验','代码','论文','课堂展示','小组项目','考试复习','其他'].map(x=>`<option>${x}</option>`).join('')}</select></div>
+    <div class="full"><label>作业标题</label><input id="f_title" placeholder="如：作业二：最大流建模"></div>
+    <div class="full"><label>课程内容 / 要求</label><textarea id="f_content" rows="2" placeholder="具体要做什么、有什么格式要求"></textarea></div>
+    <div><label>提交方式</label><select id="f_m">${['学习平台','邮箱','纸质','课堂提交','代码仓库','在线文档','无需提交'].map(x=>`<option>${x}</option>`).join('')}</select></div>
+    <div><label>提交地址 / 对象</label><input id="f_target" placeholder="平台链接 / 邮箱 / 仓库地址"></div>
+    <div class="full"><label>所需教材或 PPT 对应章节</label><input id="f_mat" placeholder="如：《机器学习》第 5 章 + 课件 P30–48"></div>
+    <div><label>所属周次</label><input id="f_week" type="number" value="${W}" min="1" max="${TOTAL_WEEKS}"></div>
+    <div><label>截止时间</label><input id="f_due" type="datetime-local" value="2026-09-20T23:59"></div>
+    <div><label>预估工时（小时）</label><input id="f_h" type="number" step="0.5" value="3"></div>
+    <div><label>占总成绩（%）</label><input id="f_w" type="number" step="1" value="10"></div>
+  </div>
+  <div class="foot"><button class="btn" onclick="closeM()">取消</button><button class="btn pri" onclick="saveNew()">保存</button></div>`);
+}
+function saveNew(){
+  const nm=document.getElementById('f_c').value,t=document.getElementById('f_title').value;
+  if(!t.trim())return toast('请填写作业标题');
+  assigns.push({id:'a'+Date.now(),c:courses.find(c=>c.name===nm).id,week:+document.getElementById('f_week').value,
+    title:t,type:document.getElementById('f_t').value,content:document.getElementById('f_content').value||'（未填写）',
+    method:document.getElementById('f_m').value,target:document.getElementById('f_target').value,
+    material:document.getElementById('f_mat').value||'（未指定）',
+    due:document.getElementById('f_due').value.replace('T',' '),hours:+document.getElementById('f_h').value,
+    weight:+document.getElementById('f_w').value,status:'未开始',prio:'中'});
+  closeM();render();toast('作业已添加，并已归入选定课程');
+}
+
+function openExcel(){
+  const rows=[['高级算法设计与分析','张伟','星期一','08:30-11:30','逸夫楼A302','1-16周',3],
+  ['机器学习理论','李文','星期一','14:00-17:00','主楼B105','1-16周',3],
+  ['学术写作与学术规范','王芳','星期二','18:00-21:00','线上（腾讯会议）','1-8周',2],
+  ['矩阵论','陈刚','星期三','08:30-11:30','逸夫楼A201','1-16周',3]];
+  open(`<h2>导入 Excel 课程表</h2><div class="desc">已读取 <b>研究生课表_2026秋.xlsx</b> · Sheet「课表」· 8 行 · 已完成表头别名匹配</div>
+  <div class="sec">字段映射（可手动调整）</div>
+  <div class="map">
+   <div class="row"><span class="k">课程名称</span><select><option>A 列 · 课程名称</option></select></div>
+   <div class="row"><span class="k">任课教师</span><select><option>C 列 · 教师</option></select></div>
+   <div class="row"><span class="k">星期</span><select><option>D 列 · 上课日</option></select></div>
+   <div class="row"><span class="k">上课时间</span><select><option>E 列 · 时间</option></select></div>
+   <div class="row"><span class="k">教室</span><select><option>F 列 · 地点</option></select></div>
+   <div class="row"><span class="k">周次</span><select><option>G 列 · 周次</option></select></div>
+  </div>
+  <div class="sec">解析预览（8 行 · 成功 7 · 待确认 1）</div>
+  <table class="tb"><tr><th>课程</th><th>教师</th><th>星期</th><th>时间</th><th>时段</th><th>教室</th><th>周次</th><th>状态</th></tr>
+  ${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[3]<'12:00'?'上午':'下午'}</td><td>${r[4]}</td><td>${r[5]}</td><td><span class="tag" style="color:#065f46;background:#ecfdf5;border-color:#a7f3d0">正常</span></td></tr>`).join('')}
+  <tr><td>高等统计学</td><td>周敏</td><td>星期五</td><td>19:00-21:30</td><td>晚上</td><td>逸夫楼A305</td><td>1-16周</td><td><span class="tag" style="color:#92400e;background:#fffbeb;border-color:#fde68a">下课 21:30 超出时段</span></td></tr></table>
+  <div class="sec">导入模式</div>
+  <div class="row" style="font-size:12.5px"><select style="min-width:220px"><option>追加到当前学期</option><option>覆盖本周</option><option>全量替换（按学期）</option></select></div>
+  <div class="foot"><button class="btn" onclick="closeM()">取消</button><button class="btn pri" onclick="closeM();toast('已导入 8 条排课记录，1 条进入待确认')">确认导入</button></div>`);
+}
+
+function openOcr(){
+  const p=changes.filter(c=>c.status==='待确认');
+  open(`<h2>截图识别 · 教室规划与变更</h2><div class="desc">已识别 <b>教务_第3周教室调整通知.png</b>（本地 OCR · 平均置信度 0.90）</div>
+  <div class="sec">识别结果与差异比对</div>
+  <table class="tb"><tr><th>课程</th><th>类型</th><th>生效周次</th><th>原值 → 新值</th><th>原因</th><th>置信度</th><th>处理</th></tr>
+  ${p.map(c=>{const s=slots.find(x=>x.id===c.slot);return `<tr><td>${course(s.c).name}</td><td>${c.type}</td><td>${c.week}</td>
+   <td><div class="diff"><span class="o">${c.old}</span>→<span class="n">${c.nw}</span></div></td><td>${c.reason}</td>
+   <td>${c.conf}</td><td><select style="font-size:12px;padding:3px 6px"><option>应用</option><option>忽略</option><option>手工编辑</option></select></td></tr>`}).join('')}
+  </table>
+  <div class="sec">待人工确认（置信度 &lt; 0.80）</div>
+  <div class="empty">暂无低置信度条目</div>
+  <div class="foot"><button class="btn" onclick="closeM()">稍后处理</button><button class="btn pri" onclick="applyChange()">应用全部并更新课表</button></div>`);
+}
+function applyChange(){
+  const p=changes.filter(c=>c.status==='待确认');
+  p.forEach(c=>{c.status='已应用';if(c.type==='换教室'){const s=slots.find(x=>x.id===c.slot);s.r=c.nw.split(' ')[1]||c.nw}});
+  closeM();render();toast('已应用 '+p.length+' 条变更，原始截图与 OCR 文本已存档');
+}
+
+function open(html){document.getElementById('modal').innerHTML=html;document.getElementById('ov').classList.add('on')}
+function closeM(){document.getElementById('ov').classList.remove('on')}
+let tm;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(()=>t.style.display='none',2400)}
+
+document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeM()});
+document.getElementById('prevW').onclick=()=>{W=Math.max(1,W-1);render()};
+document.getElementById('nextW').onclick=()=>{W=Math.min(TOTAL_WEEKS,W+1);render()};
+document.getElementById('todayW').onclick=()=>{W=curWeek();render()};
+document.getElementById('btnExcel').onclick=openExcel;
+document.getElementById('btnOcr').onclick=openOcr;
+document.getElementById('btnNew').onclick=()=>openNew();
+document.getElementById('changeBar').onclick=()=>{if(MM.length)openMismatch();else openOcr()};
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+document.getElementById('btnPlanImp').onclick=openPlanImport;
+document.getElementById('btnExport').onclick=()=>{
+  const sel=planCourses.filter(c=>c.status==='已选');
+  const A=analyze();const bad=sel.filter(c=>A.sess.some(s=>s.cid===c.id&&A.gid[s.key]&&planCourses.find(x=>x.id===A.groups.find(g=>g.id===A.gid[s.key]).sess.find(y=>y.cid!==c.id).cid).status==='已选'));
+  toast(bad.length?`导出失败：${bad.map(c=>c.name).join('、')} 仍存在冲突`:`已导出 ${sel.length} 门课程为正式课表（${sel.reduce((s,c)=>s+c.credit,0)} 学分）`);
+};
+render();
+</script>
+<script>
+(function(){
+/* ============ 网格横向滚动容器 ============ */
+var gEl=document.getElementById('grid');
+if(gEl && gEl.parentNode.className.indexOf('gridwrap')<0){
+  var wrap=document.createElement('div'); wrap.className='gridwrap';
+  gEl.parentNode.insertBefore(wrap,gEl); wrap.appendChild(gEl);
+}
+
+/* ============ 本地持久化 ============ */
+var KEY='gs_data_v1';
+/* 优先走原生 SharedPreferences（file:// 下 localStorage 可能不可用），失败降级 localStorage */
+function nsGet(){
+  try{ if(window.Android&&window.Android.loadData){ var s=window.Android.loadData(); if(s) return s; } }catch(e){}
+  try{ return localStorage.getItem(KEY); }catch(e){}
+  return null;
+}
+function nsSet(v){
+  try{ if(window.Android&&window.Android.saveData){ window.Android.saveData(v); return true; } }catch(e){}
+  try{ localStorage.setItem(KEY,v); return true; }catch(e){}
+  return false;
+}
+function nsClear(){
+  try{ if(window.Android&&window.Android.saveData){ window.Android.saveData(''); } }catch(e){}
+  try{ localStorage.removeItem(KEY); }catch(e){}
+}
+function put(t,s){ if(!s||!s.length) return; t.length=0; for(var i=0;i<s.length;i++) t.push(s[i]); }
+function persist(){
+  try{ nsSet(JSON.stringify({
+    courses:courses, slots:slots, events:events, assigns:assigns,
+    changes:changes, planCourses:planCourses, W:W })); }catch(e){}
+}
+function restore(){
+  var raw=null; try{ raw=nsGet(); }catch(e){}
+  if(!raw) return false;
+  try{
+    var d=JSON.parse(raw);
+    put(courses,d.courses); put(slots,d.slots); put(events,d.events); put(planCourses,d.planCourses);
+    if(d.assigns) assigns=d.assigns;
+    if(d.changes) changes=d.changes;
+    if(typeof d.W==='number') W=d.W;
+    return true;
+  }catch(e){ return false; }
+}
+var _had=restore();
+var _render=render;
+render=function(){ try{persist();}catch(e){} return _render.apply(this,arguments); };
+
+/* ============ 工具 ============ */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function pd(n){ n=String(n); return n.length<2?'0'+n:n; }
+function perOf(start){ var h=parseInt(String(start).slice(0,2),10); return h<12?'morning':(h<18?'afternoon':'evening'); }
+
+/* ============ Excel 解析 ============ */
+var PM={'上午':['08:30','11:30'],'下午':['14:00','17:00'],'晚上':['18:00','21:00']};
+var DAYMAP={'一':0,'二':1,'三':2,'四':3,'五':4,'六':5,'日':6,'天':6};
+var DAYLBL=['周一','周二','周三','周四','周五','周六','周日'];
+
+function cv(r,c){ if(c==null||r==null) return ''; var v=r[c]; return v==null?'':String(v).replace(/\s+/g,' ').trim(); }
+function findHeader(rows){
+  for(var i=0;i<Math.min(rows.length,25);i++){
+    var r=rows[i]||[], ne=0, hit=false;
+    for(var c=0;c<r.length;c++){ var s=cv(r,c); if(s) ne++; if(/课程名称|课程名/.test(s)) hit=true; }
+    if(hit && ne>=3) return i;
+  }
+  return -1;
+}
+function findDayRow(rows,hdr){
+  for(var i=hdr;i<Math.min(hdr+3,rows.length);i++){
+    var r=rows[i]||[], map={}, cnt=0;
+    for(var c=0;c<r.length;c++){
+      var s=cv(r,c).replace(/\s/g,'');
+      var m=s.match(/^周\s*([一二三四五六日天])$/);
+      if(m){ map[c]=DAYMAP[m[1]]; cnt++; }
+    }
+    if(cnt>=3) return {row:i,map:map};
+  }
+  return null;
+}
+function mapCols(hdrRow){
+  var m={};
+  for(var c=0;c<hdrRow.length;c++){
+    var s=cv(hdrRow,c).replace(/\s/g,''); if(!s) continue;
+    if(/课程编号/.test(s)&&m.code==null) m.code=c;
+    else if(/课程名称|课程名/.test(s)&&m.name==null) m.name=c;
+    else if(/教师|主讲|任课/.test(s)&&m.teacher==null) m.teacher=c;
+    else if(/学时/.test(s)&&m.hours==null) m.hours=c;
+    else if(/学分/.test(s)&&m.credit==null) m.credit=c;
+    else if(/^时间$|^上课时间$|时段|节次/.test(s)&&m.period==null) m.period=c;
+    else if(/备注|说明/.test(s)&&m.note==null) m.note=c;
+    else if(/地点|教室/.test(s)&&m.room==null) m.room=c;
+  }
+  return m;
+}
+function weekInfo(note){
+  var s=String(note||'');
+  var m=s.match(/第?\s*(\d{1,2})\s*[-~至—]\s*(\d{1,2})\s*周/);
+  if(m){ var a=+m[1],b=+m[2]; if(a>b){var t=a;a=b;b=t;} return {k:'range',a:a,b:b,label:a+'-'+b+'周'}; }
+  var d=s.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日开课/);
+  if(d){
+    try{
+      var st=new Date(SEM_START+'T00:00:00');
+      var dd=new Date(st.getFullYear()+'-'+pd(d[1])+'-'+pd(d[2])+'T00:00:00');
+      var w=Math.floor((dd-st)/604800000)+1; if(w<1) w=1;
+      return {k:'range',a:w,b:TOTAL_WEEKS,label:w+'-'+TOTAL_WEEKS+'周'};
+    }catch(e){}
+  }
+  if(/单周/.test(s)) return {k:'odd',a:1,b:17,label:'单周'};
+  if(/双周/.test(s)) return {k:'even',a:2,b:18,label:'双周'};
+  return {k:'range',a:1,b:TOTAL_WEEKS,label:'1-'+TOTAL_WEEKS+'周'};
+}
+function weeksArr(w){
+  var r=[],i;
+  if(w.k==='odd'){ for(i=1;i<=17;i+=2) r.push(i); }
+  else if(w.k==='even'){ for(i=2;i<=18;i+=2) r.push(i); }
+  else { for(i=w.a;i<=w.b;i++) r.push(i); }
+  return r;
+}
+function roomOf(v){ v=String(v||'').replace(/\n/g,' ').replace(/\s+/g,''); var a=v.split('/'); return a.length>1?a[a.length-1]:v; }
+function parseRows(rows){
+  var hi=findHeader(rows); if(hi<0) return null;
+  var cols=mapCols(rows[hi]), dr=findDayRow(rows,hi);
+  if(cols.name==null) return null;
+  var out=[],seq=0;
+  for(var i=hi+1;i<rows.length;i++){
+    var r=rows[i]||[];
+    var name=cv(r,cols.name);
+    if(!name||name.length<2) continue;
+    if(/上课时间|校区|星期|合计|说明|备注/.test(name)) continue;
+    if(/^\d+$/.test(name)) continue;
+    if(name.length>40) continue;
+    if(/[上下晚]午/.test(name) && /\d/.test(name)) continue;
+    var note=cv(r,cols.note), per=cv(r,cols.period).replace(/\s/g,'');
+    var hours=parseInt(cv(r,cols.hours),10); if(!hours) hours=16;
+    var wk=weekInfo(note);
+    var nt=note.match(/(\d{1,2})\s*[:：]\s*(\d{2})\s*[-~至—]\s*(\d{1,2})\s*[:：]\s*(\d{2})/);
+    var rs=nt?(pd(nt[1])+':'+nt[2]):'', re=nt?(pd(nt[3])+':'+nt[4]):'';
+    var times=[], rooms=[];
+    if(dr){
+      for(var key in dr.map){
+        var c=key|0, v=cv(r,c); if(!v) continue;
+        var st='08:30', en='11:30';
+        if(rs){ st=rs; en=re; }
+        else if(PM[per]){ st=PM[per][0]; en=PM[per][1]; }
+        times.push({d:dr.map[key],start:st,end:en,weeks:weeksArr(wk),wk:wk.label});
+        rooms.push(DAYLBL[dr.map[key]]+' '+roomOf(v));
+      }
+    } else if(PM[per]){
+      times.push({d:0,start:PM[per][0],end:PM[per][1],weeks:weeksArr(wk),wk:wk.label});
+    }
+    seq++;
+    out.push({ id:'x'+seq, code:cv(r,cols.code), name:name, teacher:cv(r,cols.teacher)||'—',
+      hours:hours, credit:+(hours/16).toFixed(1), cat:'', admin:'', note:note.slice(0,60),
+      status:'候选', room:rooms.join('；'), times:times });
+  }
+  return out.length?out:null;
+}
+
+/* ============ 文件选择 ============ */
+function pickFile(cb){
+  if(typeof XLSX==='undefined'){ toast('Excel 解析组件未加载'); return; }
+  var inp=document.createElement('input');
+  inp.type='file'; inp.accept='.xlsx,.xls,.csv'; inp.style.display='none';
+  document.body.appendChild(inp);
+  inp.onchange=function(){
+    var f=inp.files&&inp.files[0];
+    if(!f){ try{document.body.removeChild(inp);}catch(e){} return; }
+    var fr=new FileReader();
+    fr.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        cb(wb,f.name);
+      }catch(err){ toast('解析失败：'+err.message); }
+      try{document.body.removeChild(inp);}catch(er){}
+    };
+    fr.onerror=function(){ toast('读取文件失败'); try{document.body.removeChild(inp);}catch(er){} };
+    fr.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+function rowsOf(wb,idx){
+  var ws=wb.Sheets[wb.SheetNames[idx]];
+  return XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false,raw:false});
+}
+function readTable(wb){
+  for(var i=0;i<wb.SheetNames.length;i++){
+    var rows=rowsOf(wb,i);
+    if(rows.length<2) continue;
+    if(findHeader(rows)>=0) return {rows:rows,name:wb.SheetNames[i]};
+  }
+  return {rows:rowsOf(wb,0),name:wb.SheetNames[0]};
+}
+
+/* ============ 导入预览 ============ */
+var _importList=null;
+function showPreview(list,sheet,file){
+  _importList=list;
+  var h='<h2>导入预览</h2><div class="desc">来源：'+esc(file)+' · 工作表「'+esc(sheet)+'」<br>'+
+    '共识别 <b>'+list.length+'</b> 门课程。勾选你<b>已选 / 要选</b>的课程，可将它们写入学期课表。</div>';
+  h+='<div style="max-height:44vh;overflow:auto;border:1px solid var(--line);border-radius:8px">';
+  h+='<table class="tb"><thead><tr><th style="width:30px">选</th><th>课程</th><th>上课时间</th><th>教室</th></tr></thead><tbody>';
+  for(var i=0;i<list.length;i++){
+    var c=list[i];
+    var t=c.times.length?c.times.map(function(x){return DAYLBL[x.d]+' '+x.start+'-'+x.end+' '+x.wk}).join('；'):'待定';
+    h+='<tr><td><input type="checkbox" class="pk" data-i="'+i+'"></td><td><b>'+esc(c.name)+
+       '</b><div style="font-size:10.5px;color:var(--tx3)">'+esc(c.teacher)+' · '+c.hours+'学时</div></td>'+
+       '<td style="font-size:10.5px">'+esc(t)+'</td><td style="font-size:10.5px">'+esc(c.room||'—')+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
+  h+='<div class="sec">导入方式</div>';
+  h+='<div style="font-size:12px;color:var(--tx2);margin-bottom:12px">「仅选课清单」把全部课程放进选课模式做冲突分析；「+ 我的课表」同时把勾选课程写入学期课表。</div>';
+  h+='<div class="foot"><button class="btn" onclick="closeM()">取消</button>'+
+     '<button class="btn" id="impPlan">仅更新选课清单</button>'+
+     '<button class="btn pri" id="impBoth">导入 + 写入我的课表</button></div>';
+  open(h);
+  document.getElementById('impPlan').onclick=function(){ doImport(false); };
+  document.getElementById('impBoth').onclick=function(){ doImport(true); };
+}
+function picked(){
+  var ns=document.querySelectorAll('#modal .pk'), a=[];
+  for(var i=0;i<ns.length;i++) if(ns[i].checked) a.push(+ns[i].getAttribute('data-i'));
+  return a;
+}
+function doImport(alsoTerm){
+  var list=_importList; if(!list) return;
+  var picks=picked();
+  planCourses.length=0;
+  for(var i=0;i<list.length;i++){ list[i].id='p'+(i+1); list[i].status='候选'; planCourses.push(list[i]); }
+  var dropped=0;
+  if(alsoTerm){
+    if(!picks.length){ toast('请先勾选要写入课表的课程'); return; }
+    courses.length=0; slots.length=0;
+    for(var k=0;k<picks.length;k++){
+      var c=list[picks[k]], cid='c'+(k+1);
+      courses.push({id:cid,name:c.name,code:c.code,teacher:c.teacher,credit:c.credit,cat:'',color:k%8});
+      for(var j=0;j<c.times.length;j++){
+        var t=c.times[j];
+        slots.push({id:'s'+(k+1)+'_'+j,c:cid,d:t.d,p:perOf(t.start),b:'',r:c.room||'',w:t.wk,weeks:t.weeks,mode:'线下'});
+      }
+      c.status='已选';
+    }
+    var ids={}; for(var m=0;m<courses.length;m++) ids[courses[m].id]=1;
+    var keep=[];
+    for(var n=0;n<assigns.length;n++){ if(ids[assigns[n].c]) keep.push(assigns[n]); else dropped++; }
+    assigns=keep;
+  }
+  closeM();
+  if(alsoTerm){ setMode('term'); } else { setMode('plan'); }
+  render();
+  toast('已导入 '+list.length+' 门课程'+(alsoTerm?('，写入课表 '+picks.length+' 门'+(dropped?'，移除 '+dropped+' 条失效作业':'')):''));
+}
+function importExcel(){
+  pickFile(function(wb,fn){
+    var t=readTable(wb);
+    var list=parseRows(t.rows);
+    if(!list){ toast('未识别到课程表结构（需含「课程名称」表头）'); return; }
+    showPreview(list,t.name,fn);
+  });
+}
+function importPlanFile(){
+  var h='<h2>导入选课清单</h2><div class="desc">可以导入教务的完整选课列表（Excel），或粘贴文本清单。</div>';
+  h+='<div class="foot"><button class="btn" onclick="closeM()">取消</button>'+
+     '<button class="btn" id="plTxt">粘贴文本清单</button>'+
+     '<button class="btn pri" id="plFile">从 Excel 文件导入</button></div>';
+  open(h);
+  document.getElementById('plTxt').onclick=function(){ closeM(); openPlanImport(); };
+  document.getElementById('plFile').onclick=function(){ importExcel(); };
+}
+
+/* ============ 更多菜单（备份 / 恢复） ============ */
+function openMore(){
+  var h='<h2>数据管理</h2><div class="desc">数据保存在本机 App 内。建议定期导出备份。</div>';
+  h+='<div class="sec">当前状态</div><div class="kv">'+
+     '<div class="k">课程</div><div>'+courses.length+' 门</div>'+
+     '<div class="k">排课</div><div>'+slots.length+' 条</div>'+
+     '<div class="k">作业</div><div>'+assigns.length+' 条</div>'+
+     '<div class="k">选课清单</div><div>'+planCourses.length+' 门</div></div>';
+  h+='<div class="sec">操作</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px">'+
+     '<button class="btn" id="mExp">导出备份（JSON）</button>'+
+     '<button class="btn" id="mReset">清除本地数据，恢复内置示例</button></div>';
+  h+='<div class="foot"><button class="btn pri" onclick="closeM()">关闭</button></div>';
+  open(h);
+  document.getElementById('mExp').onclick=function(){
+    var data={courses:courses,slots:slots,events:events,assigns:assigns,changes:changes,planCourses:planCourses,W:W};
+    var txt=JSON.stringify(data);
+    if(window.Android&&window.Android.saveFile){ window.Android.saveFile('课表备份.json',txt); }
+    else { try{ localStorage.setItem('gs_backup',txt); toast('已保存到 App 内部备份区'); }catch(e){ toast('导出失败'); } }
+    closeM();
+  };
+  document.getElementById('mReset').onclick=function(){
+    nsClear();
+    closeM(); location.reload();
+  };
+}
+
+/* ============ 绑定 ============ */
+var be=document.getElementById('btnExcel'); if(be) be.onclick=importExcel;
+var bp=document.getElementById('btnPlanImp'); if(bp) bp.onclick=importPlanFile;
+var more=document.createElement('button');
+more.className='appmore btn'; more.textContent='☰ 数据'; more.style.boxShadow='0 3px 12px rgba(0,0,0,.18)';
+more.onclick=openMore; document.body.appendChild(more);
+
+/* 暴露给自动化测试 / 调试 */
+window.__pk={parseRows:parseRows,findHeader:findHeader,findDayRow:findDayRow,mapCols:mapCols,
+  weekInfo:weekInfo,weeksArr:weeksArr,readTable:readTable,importExcel:importExcel,openMore:openMore};
+
+try{ persist(); }catch(e){}
+if(_had){ try{ render(); }catch(e){} }
+setTimeout(function(){ try{ toast('已载入本地数据'); }catch(e){} },600);
+})();
+</script>
+</body>
+</html>
