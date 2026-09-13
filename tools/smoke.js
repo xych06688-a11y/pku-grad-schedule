@@ -25,7 +25,7 @@ const dom = new JSDOM(HTML, {
   }
 });
 const win = dom.window, doc = win.document;
-const ok = (n, v) => console.log((v ? '  OK  ' : ' FAIL ') + n + (v === true ? '' : '  -> ' + v));
+const ok = (n, v) => { const pass = (v === true); console.log((pass ? '  OK  ' : ' FAIL ') + n + (pass ? '' : '  -> ' + v)); };
 
 ok('无脚本错误', errs.length === 0 ? true : errs.slice(0, 3).join(' | '));
 ok('grid 已渲染', doc.getElementById('grid').innerHTML.length > 200);
@@ -64,6 +64,94 @@ if (opt0) {
 }
 const stat = doc.getElementById('pStat');
 console.log('  侧栏统计:', stat ? stat.textContent.trim().slice(0, 80) : '');
+
+console.log('\n=== 2.5 导出正式课表 / 考勤 / 作业待办 / 学习计划 ===');
+/* 逐格选满（复用真实交互路径），再导出 */
+for (let guard = 0; guard < 60; guard++) {
+  const ss = [...doc.querySelectorAll('#grid select')];
+  let did = false;
+  for (const s of ss) {
+    const o = [...s.options].find(x => x.value);
+    if (o) { s.value = o.value; s.dispatchEvent(new win.Event('change')); did = true; break; }
+  }
+  if (!did) break;
+}
+const selN = win.eval("planCourses.filter(c=>c.status==='已选').length");
+ok('逐格选课后有已选课程', selN > 0 ? true : selN);
+win.eval("W=1");
+doc.getElementById('btnExport').click();
+const cN = win.eval('courses.length'), sN = win.eval('slots.length');
+ok('导出生成了课程', cN > 0 ? true : cN);
+ok('导出生成了排课时段', sN > 0 ? true : sN);
+ok('导出后切回学期课表', win.eval('MODE') === 'term');
+ok('学期网格出现课程卡片', doc.querySelectorAll('#grid .cls').length > 0 ? true : doc.querySelectorAll('#grid .cls').length);
+
+/* 考勤方式：可选，填了才显示 */
+const cid0 = win.eval('courses[0].id');
+ok('默认无考勤标记', doc.getElementById('grid').innerHTML.indexOf('考勤') < 0);
+win.eval(`courses[0].attendance='课堂点名';render()`);
+ok('填写后课表卡片显示考勤', doc.getElementById('grid').innerHTML.indexOf('考勤 课堂点名') >= 0);
+win.eval(`courses[0].attendance='（未填写）';render()`);
+ok('留空后不再显示考勤', doc.getElementById('grid').innerHTML.indexOf('考勤') < 0);
+
+/* 作业待办清单 */
+win.eval(`assigns.push({id:'t1',c:courses[0].id,week:1,title:'测试作业',type:'课后作业',content:'x',
+  method:'学习平台',target:'',material:'x',due:'2026-09-20 23:59',hours:2,weight:10,status:'未开始',prio:'中',
+  todos:[{t:'第一步',done:false},{t:'第二步',done:false}]});render();openAs('t1')`);
+ok('作业详情含待办清单', doc.getElementById('modal').innerHTML.indexOf('待办清单') >= 0);
+ok('待办条目渲染 2 条', doc.querySelectorAll('#modal .tdo .it').length === 2 ? true : doc.querySelectorAll('#modal .tdo .it').length);
+win.eval("toggleTodo('t1',0)");
+ok('勾选后进度更新', win.eval("assigns.find(a=>a.id==='t1').todos[0].done") === true);
+win.eval("addTodo('t1')");
+win.eval(`document.getElementById('td_new_t1').value='第三步';addTodo('t1')`);
+ok('新增待办成功', win.eval("assigns.find(a=>a.id==='t1').todos.length") === 3 ? true : win.eval("assigns.find(a=>a.id==='t1').todos.length"));
+win.eval("delTodo('t1',2)");
+ok('删除待办成功', win.eval("assigns.find(a=>a.id==='t1').todos.length") === 2 ? true : win.eval("assigns.find(a=>a.id==='t1').todos.length"));
+win.eval("closeM()");
+
+/* 学习计划：含单双周判断 */
+/* 学习计划：重点验证单周判定 —— 重新导出，只选一门单周课 */
+win.eval(`assigns.length=0;plans.length=0;planCourses.forEach(c=>c.status='候选');
+  var t=planCourses.find(c=>c.times.some(x=>/单周/.test(x.wk)));
+  if(t)t.status='已选'; setMode('plan')`);
+doc.getElementById('btnExport').click();
+ok('单周课程已导出', win.eval(`slots.filter(x=>/单周/.test(x.w)).length`) === 1 ? true : win.eval(`slots.map(x=>x.w).join(',')`));
+ok('清单中存在双周课程', win.eval(`planCourses.filter(c=>c.times.some(x=>/双周/.test(x.wk))).length`) > 0);
+
+win.eval("setMode('study');W=1;render()");
+ok('学习计划模式已切换', win.eval('MODE') === 'study');
+ok('21 个格子均有添加入口', doc.querySelectorAll('#grid .addpl').length === 21 ? true : doc.querySelectorAll('#grid .addpl').length);
+const oddSlot = win.eval(`(function(){const s=slots[0];return {d:s.d,p:s.p,w:s.w}})()`);
+console.log('  单周样本:', `${['周一','周二','周三','周四','周五','周六','周日'][oddSlot.d]} ${oddSlot.p} ${oddSlot.w}`);
+ok('第 1 周有课', win.eval(`classesAt(1,${oddSlot.d},'${oddSlot.p}').length`) === 1);
+ok('第 2 周无课（单周不上）', win.eval(`classesAt(2,${oddSlot.d},'${oddSlot.p}').length`) === 0);
+ok('第 3 周有课（奇数周）', win.eval(`classesAt(3,${oddSlot.d},'${oddSlot.p}').length`) === 1);
+win.eval(`W=2;render()`);
+ok('第 2 周该格标注「本周不上」', doc.getElementById('grid').innerHTML.indexOf('本周不上') >= 0);
+ok('第 2 周该格不显示有课标记', doc.getElementById('grid').innerHTML.indexOf('mini on') < 0);
+win.eval(`W=1;render()`);
+ok('第 1 周该格显示有课', doc.getElementById('grid').innerHTML.indexOf('mini on') >= 0);
+/* 在有课的格子加计划 → 自动标记「上课时学别的」 */
+const cell = win.eval(`(function(){const s=slots.find(x=>x.weeks.includes(1));return s?{d:s.d,p:s.p}:null})()`);
+if (cell) {
+  win.eval(`openPlanAdd(${cell.d},'${cell.p}')`);
+  ok('有课时段给出提醒', doc.getElementById('modal').innerHTML.indexOf('本周该时段有课') >= 0);
+  win.eval(`document.getElementById('sp_t').value='看论文';savePlan(${cell.d},'${cell.p}')`);
+  ok('计划已保存', win.eval('plans.length') === 1 ? true : win.eval('plans.length'));
+  ok('自动标记为上课时学别的', win.eval('plans[0].clash') === true);
+  ok('侧栏「上课时学别的」有条目', doc.getElementById('sWarn').innerHTML.indexOf('看论文') >= 0);
+  win.eval('togglePlanDone(plans[0].id)');
+  ok('可勾选完成', win.eval('plans[0].done') === true);
+  win.eval('W=2;render();copyLastWeek()');
+  ok('复制上周计划', win.eval('plans.length') === 2 ? true : win.eval('plans.length'));
+  ok('复制后重置完成态', win.eval('plans[1].done') === false);
+  win.eval('clearWeekPlans()');
+  ok('清空本周计划', win.eval('plans.length') === 1 ? true : win.eval('plans.length'));
+  win.eval('W=1;render()');
+}
+/* 空闲时段统计 */
+ok('空闲时段已统计', doc.getElementById('sFreeN').textContent.length >= 0);
+win.eval("setMode('term')");
 
 console.log('\n=== 3. 真实 Excel 解析（北大排课表） ===');
 if (!fs.existsSync(XLSX_FILE)) {

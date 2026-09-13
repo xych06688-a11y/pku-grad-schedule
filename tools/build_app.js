@@ -105,7 +105,7 @@ function put(t,s){ if(!s||!s.length) return; t.length=0; for(var i=0;i<s.length;
 function persist(){
   try{ nsSet(JSON.stringify({
     courses:courses, slots:slots, events:events, assigns:assigns,
-    changes:changes, planCourses:planCourses, W:W })); }catch(e){}
+    changes:changes, planCourses:planCourses, plans:plans, W:W })); }catch(e){}
 }
 function restore(){
   var raw=null; try{ raw=nsGet(); }catch(e){}
@@ -115,6 +115,7 @@ function restore(){
     put(courses,d.courses); put(slots,d.slots); put(events,d.events); put(planCourses,d.planCourses);
     if(d.assigns) assigns=d.assigns;
     if(d.changes) changes=d.changes;
+    if(d.plans) plans=d.plans;
     if(typeof d.W==='number') W=d.W;
     return true;
   }catch(e){ return false; }
@@ -351,6 +352,7 @@ function openMore(){
      '<div class="k">课程</div><div>'+courses.length+' 门</div>'+
      '<div class="k">排课</div><div>'+slots.length+' 条</div>'+
      '<div class="k">作业</div><div>'+assigns.length+' 条</div>'+
+     '<div class="k">学习计划</div><div>'+plans.length+' 条</div>'+
      '<div class="k">选课清单</div><div>'+planCourses.length+' 门</div></div>';
   h+='<div class="sec">操作</div>';
   h+='<div style="display:flex;flex-direction:column;gap:8px">'+
@@ -359,7 +361,7 @@ function openMore(){
   h+='<div class="foot"><button class="btn pri" onclick="closeM()">关闭</button></div>';
   open(h);
   document.getElementById('mExp').onclick=function(){
-    var data={courses:courses,slots:slots,events:events,assigns:assigns,changes:changes,planCourses:planCourses,W:W};
+    var data={courses:courses,slots:slots,events:events,assigns:assigns,changes:changes,planCourses:planCourses,plans:plans,W:W};
     var txt=JSON.stringify(data);
     if(window.Android&&window.Android.saveFile){ window.Android.saveFile('课表备份.json',txt); }
     else { try{ localStorage.setItem('gs_backup',txt); toast('已保存到 App 内部备份区'); }catch(e){ toast('导出失败'); } }

@@ -141,6 +141,35 @@
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   @media (max-width:1180px){.main{grid-template-columns:1fr}.form,.map{grid-template-columns:1fr}}
 
+  /* ===== 学习计划 ===== */
+  .mini{font-size:10.5px;color:var(--tx2);background:#f3f4f6;border:1px solid var(--line);border-radius:4px;padding:2px 6px;margin:4px 2px 0;display:inline-block;line-height:1.6}
+  .mini.on{background:var(--accent-soft);border-color:#c7d2fe;color:#3730a3}
+  .mini.off{opacity:.5;text-decoration:line-through}
+  .pl{display:block;width:100%;text-align:left;border:1px solid #c7d2fe;background:var(--accent-soft);color:#3730a3;border-radius:6px;padding:5px 8px;margin:4px 2px 0;font-size:11.5px;cursor:pointer;line-height:1.55}
+  .pl:hover{background:#e0e7ff}
+  .pl.done{background:#f9fafb;border-color:var(--line);color:var(--tx3)}
+  .pl.done .pt{text-decoration:line-through}
+  .pl.warn{border-color:#fcd34d;background:var(--warn-bg);color:var(--warn)}
+  .pl .mi{opacity:.8;font-size:10.5px}
+  .pl .x{float:right;color:var(--tx3);font-weight:700;padding:0 2px}
+  .pl .x:hover{color:var(--danger)}
+  .addpl{display:block;width:100%;margin-top:6px;border:1px dashed var(--line2);background:transparent;color:var(--tx3);border-radius:6px;padding:4px;font-size:11px;cursor:pointer}
+  .addpl:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ===== 作业待办清单 ===== */
+  .tdo{margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+  .tdo .it{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 0}
+  .tdo .it span{flex:1;line-height:1.5}
+  .tdo .it.done span{text-decoration:line-through;color:var(--tx3)}
+  .tdo .del{color:var(--tx3);cursor:pointer;font-size:14px;padding:0 3px;flex:none}
+  .tdo .del:hover{color:var(--danger)}
+  .tdo .addrow{display:flex;gap:6px;margin-top:6px}
+  .tdo .addrow input{flex:1;font-size:12.5px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-family:inherit}
+  .tprog{font-size:11px;color:var(--tx2);font-weight:600}
+  .tprog.ok{color:var(--ok)}
+  .attpill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;background:#f3f4f6;border:1px solid var(--line);color:var(--tx2)}
+  .attpill.set{background:var(--accent-soft);border-color:#c7d2fe;color:#3730a3}
+
   html{-webkit-text-size-adjust:100%}
   body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
   .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -201,6 +230,7 @@
     <select id="semSel"><option>2026–2027 学年 · 秋季学期</option><option>2025–2026 学年 · 春季学期（归档）</option></select>
     <div class="seg" id="modeSeg">
       <button class="on" data-m="term">学期课表</button>
+      <button data-m="study">学习计划</button>
       <button data-m="plan">选课模式</button>
     </div>
     <div class="spacer"></div>
@@ -208,6 +238,11 @@
       <button class="btn" id="btnExcel">导入 Excel 课表</button>
       <button class="btn" id="btnOcr">截图识别变更</button>
       <button class="btn pri" id="btnNew">+ 新建作业</button>
+    </span>
+    <span id="btnStudy" style="display:none">
+      <button class="btn" id="btnCopyWeek">复制上周计划</button>
+      <button class="btn" id="btnClearWeek">清空本周</button>
+      <button class="btn pri" id="btnAddPlan">+ 添加计划</button>
     </span>
     <span id="btnPlan" style="display:none">
       <button class="btn" id="btnPlanImp">导入选课清单</button>
@@ -224,6 +259,11 @@
         <div><span class="t">逐格选课</span> <span class="sub">每个格子选一门课，或选「无课」；冲突的课会自动排除</span></div>
         <div class="spacer"></div>
         <span class="sub" id="pStat"></span>
+      </div>
+      <div class="weekbar" id="studybar" style="display:none">
+        <div><span class="t">本周学习计划</span> <span class="sub">按格子安排：没课的时段直接学；有课的时段可安排「上课时学别的」，会标黄提醒</span></div>
+        <div class="spacer"></div>
+        <span class="sub" id="sStat2"></span>
       </div>
       <div class="weekbar" id="weekbar">
         <button class="btn sm" id="prevW">← 上一周</button>
@@ -253,6 +293,24 @@
         <div class="card">
           <div class="hd"><h3>本周概览</h3></div>
           <div id="stats"></div>
+        </div>
+      </div>
+      <div id="sideStudy" style="display:none">
+        <div class="card">
+          <div class="hd"><h3>本周计划概览</h3></div>
+          <div id="sStats"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>上课时学别的</h3><span class="n" id="sWarnN"></span></div>
+          <div id="sWarn"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>空闲时段（没课也没计划）</h3><span class="n" id="sFreeN"></span></div>
+          <div id="sFree"></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3>本周作业待办</h3><span class="n" id="sAsN"></span></div>
+          <div id="sAs"></div>
         </div>
       </div>
       <div id="sidePlan" style="display:none">
@@ -359,6 +417,10 @@ let planCourses=[
 /*PLAN_DATA_END*/
 let assigns=[];
 let changes=[];
+/* 学习计划：{id, week, d(0-6), p('morning'|'afternoon'|'evening'), cid(可空), title, minutes, note, done, clash} */
+let plans=[];
+
+const ATT_OPTS=['（未填写）','课堂点名','扫码/刷码签到','随堂小测','作业代考勤','线上签到','签退','无需考勤','其他'];
 
 function range(a,b){const r=[];for(let i=a;i<=b;i++)r.push(i);return r}
 function odd(a,b){return range(a,b).filter(x=>x%2===1)}
@@ -435,7 +497,7 @@ function renderTerm(){
           ${n?`<span class="badge">${n}</span>`:''}
           <span class="nm">${c.name}</span>
           <span class="mt">${c.teacher} · ${s.b} ${s.r}</span>
-          <span class="wk">${s.w}</span></div>`;
+          <span class="wk">${s.w}${attText(c)?' · 考勤 '+attText(c):''}</span></div>`;
       });
       events.filter(e=>e.d===i&&e.p===p.k&&e.weeks.includes(W)).forEach(e=>{
         html+=`<div class="ev" onclick="toast('非课程事件：${e.title}｜${e.loc}')"><b>${e.title}</b>${e.loc} · ${e.w}</div>`;
@@ -459,13 +521,14 @@ function renderTerm(){
   document.getElementById('asCount').textContent=`${list.length} 条 · 待办 ${list.filter(a=>a.status!=='已提交'&&a.status!=='已批改').length}`;
   document.getElementById('asList').innerHTML=list.length?list.map(a=>{
     const c=course(a.c),pal=PAL[c.color],cd=countdown(a.due);const done=a.status==='已提交'||a.status==='已批改';
+    const td=a.todos||[],dn=td.filter(t=>t.done).length;
     return `<button class="as" onclick="openAs('${a.id}')">
       <div class="r1"><span class="pill" style="background:${pal.bg};border-color:${pal.bd};color:${pal.tx}">${c.name}</span>
       <span class="pill">${a.type}</span>${done?'<span class="pill g">'+a.status+'</span>':''}
       <span class="spacer" style="flex:1"></span><span class="cd ${cd.c}">${done?'':cd.t}</span></div>
       <div class="tt">${a.title}</div>
       <div class="r2"><span>${a.method}</span><span>${a.material}</span></div>
-      <div class="r2" style="margin-top:3px"><span>截止 ${a.due}</span><span>预估 ${a.hours}h</span><span>占比 ${a.weight}%</span></div>
+      <div class="r2" style="margin-top:3px"><span>截止 ${a.due}</span><span>预估 ${a.hours}h</span><span>占比 ${a.weight}%</span>${td.length?`<span class="tprog ${dn===td.length?'ok':''}">待办 ${dn}/${td.length}</span>`:''}</div>
     </button>`}).join(''):'<div class="empty">本周暂无作业</div>';
 
   const todo=list.filter(a=>a.status!=='已提交'&&a.status!=='已批改');
@@ -669,14 +732,22 @@ function openPlan(id){
   open(`<h2>${c.name}</h2><div class="desc">${c.code} · ${c.cat} · ${c.credit} 学分 · ${c.teacher} · 当前状态：${c.status}</div>
   <div class="kv">
     <div class="k">上课时间</div><div>${c.times.map(t=>`${DAYS[t.d]} ${t.start}–${t.end}（${t.wk}）`).join('<br>')}</div>
-    <div class="k">地点</div><div>${c.room||'—'}</div>
-    <div class="k">冲突情况</div><div>${gids.length?`属于 ${gids.length} 个冲突组`:'与其他课程无时间冲突'}</div>
-  </div>
-  ${blocks.join('')}
+     <div class="k">地点</div><div>${c.room||'—'}</div>
+     <div class="k">考勤方式</div><div><span class="attpill ${attText(c)?'set':''}">${attText(c)||'未填写'}</span>
+       <select id="patt_sel" style="font-size:12px;padding:3px 6px;margin-left:6px">${ATT_OPTS.map(o=>`<option ${c.attendance===o?'selected':''}>${o}</option>`).join('')}</select>
+       <button class="btn sm" style="margin-left:6px" onclick="savePlanAtt('${id}')">保存</button>
+       <div style="color:var(--tx3);font-size:11.5px;margin-top:5px">可选项，导出为正式课表时会一起带过去。</div></div>
+     <div class="k">冲突情况</div><div>${gids.length?`属于 ${gids.length} 个冲突组`:'与其他课程无时间冲突'}</div>
+   </div>
+   ${blocks.join('')}
   <div class="foot"><button class="btn" onclick="closeM()">关闭</button>
     ${c.status==='已选'?`<button class="btn" onclick="setPlan('${id}','候选')">取消选择</button>`
       :`<button class="btn pri" onclick="setPlan('${id}','已选')">选这门</button>`}
     ${c.status==='排除'?'':`<button class="btn" onclick="setPlan('${id}','排除')">排除</button>`}</div>`);
+}
+function savePlanAtt(id){
+  const c=planCourses.find(x=>x.id===id);c.attendance=document.getElementById('patt_sel').value;
+  closeM();render();toast(c.attendance==='（未填写）'?'已清除考勤方式':'考勤方式已保存：'+c.attendance);
 }
 function setPlan(id,st){
   const c=planCourses.find(x=>x.id===id);
@@ -740,29 +811,172 @@ function setMode(m){
   MODE=m;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
   document.getElementById('btnTerm').style.display=m==='term'?'inline':'none';
+  document.getElementById('btnStudy').style.display=m==='study'?'inline':'none';
   document.getElementById('btnPlan').style.display=m==='plan'?'inline':'none';
-  document.getElementById('weekbar').style.display=m==='term'?'flex':'none';
+  document.getElementById('weekbar').style.display=(m==='term'||m==='study')?'flex':'none';
+  document.getElementById('studybar').style.display=m==='study'?'flex':'none';
   document.getElementById('planbar').style.display=m==='plan'?'flex':'none';
   document.getElementById('sideTerm').style.display=m==='term'?'block':'none';
+  document.getElementById('sideStudy').style.display=m==='study'?'block':'none';
   document.getElementById('sidePlan').style.display=m==='plan'?'block':'none';
-  document.getElementById('changeBar').style.display=m==='term'?'flex':'none';
-  render();
+  document.getElementById('changeBar').style.display='none';
+  if(m==='term')renderTerm();else if(m==='study')renderStudy();else renderPlan();
 }
-function render(){MODE==='term'?renderTerm():renderPlan()}
+function render(){MODE==='term'?renderTerm():(MODE==='study'?renderStudy():renderPlan())}
+
+/* ============ 学习计划 ============ */
+function plansAt(w,d,p){return plans.filter(x=>x.week===w&&x.d===d&&x.p===p)}
+function classesAt(w,d,p){return slots.filter(s=>s.d===d&&s.p===p&&s.weeks.includes(w))}
+function attText(c){return c&&c.attendance&&c.attendance!=='（未填写）'?c.attendance:''}
+
+function renderStudy(){
+  const dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
+  document.getElementById('wTitle').textContent=`第 ${W} 周 · 学习计划`;
+  document.getElementById('wRange').textContent=`${dates[0]} — ${dates[6]}${isCur?' · 本周':''}`;
+  let html='<thead><tr><th style="width:96px">时间</th>';
+  DAYS.forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
+  html+='</tr></thead><tbody>';
+  let total=0,done=0,warn=0,free=[];
+  PERIODS.forEach(p=>{
+    html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
+    for(let i=0;i<7;i++){
+      const isToday=isCur&&i===todayIdx;
+      html+=`<td class="cell ${isToday?'today':''}">`;
+      const cs=classesAt(W,i,p.k);
+      if(cs.length){
+        cs.forEach(s=>{
+          const c=course(s.c);
+          html+=`<span class="mini on" title="本周有课">${c.name}${s.w&&s.w.indexOf('周')<0?'':' · '+s.w}${attText(c)?' · '+attText(c):''}</span>`;
+        });
+      }else{
+        // 本周不上：可能是单/双周或周次区间
+        const maybe=slots.filter(s=>s.d===i&&s.p===p.k&&!s.weeks.includes(W));
+        if(maybe.length){
+          html+=`<span class="mini off" title="本周不上">${maybe.map(s=>course(s.c).name).join('、')}（本周不上${maybe[0].w?' · '+maybe[0].w:''}）</span>`;
+        }
+      }
+      const ps=plansAt(W,i,p.k);
+      ps.forEach(pl=>{
+        total++; if(pl.done)done++; if(pl.clash)warn++;
+        const cn=pl.cid?course(pl.cid):null;
+        html+=`<div class="pl ${pl.done?'done':''} ${pl.clash?'warn':''}" onclick="togglePlanDone('${pl.id}')">
+          <span class="x" onclick="event.stopPropagation();delPlan('${pl.id}')">×</span>
+          <span class="pt">${pl.done?'☑ ':'☐ '}${pl.title}</span>
+          <span class="mi">${cn?cn.name+' · ':''}${pl.minutes?pl.minutes+' 分钟':''}${pl.note?' · '+pl.note:''}${pl.clash?' · 上课时学别的':''}</span></div>`;
+      });
+      html+=`<button class="addpl" onclick="openPlanAdd(${i},'${p.k}')">+ 添加计划</button>`;
+      if(!cs.length&&!ps.length)free.push(`${DAYS[i]}${p.n}`);
+      html+='</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('grid').innerHTML=html;
+  document.getElementById('grid').className='grid';
+  document.getElementById('termEmpty').innerHTML='';
+  document.getElementById('pendingBox').innerHTML='';
+
+  const mins=plans.filter(x=>x.week===W&&!x.done).reduce((s,x)=>s+(+x.minutes||0),0);
+  document.getElementById('wStat').textContent=`本周 ${total} 条计划 · 已完成 ${done}`;
+  document.getElementById('sStat2').textContent=`未完成预计 ${(mins/60).toFixed(1)} 小时`;
+  document.getElementById('sStats').innerHTML=`
+    <div class="stat"><span>计划条目</span><b>${total} 条</b></div>
+    <div class="stat"><span>已完成</span><b>${done} 条</b></div>
+    <div class="stat"><span>未完成预计</span><b>${(mins/60).toFixed(1)} 小时</b></div>
+    <div class="stat"><span>上课时学别的</span><b>${warn} 条</b></div>
+    <div class="stat"><span>空闲时段</span><b>${free.length} 个</b></div>`;
+
+  const wl=plans.filter(x=>x.week===W&&x.clash);
+  document.getElementById('sWarnN').textContent=wl.length?`${wl.length} 条`:'';
+  document.getElementById('sWarn').innerHTML=wl.length?wl.map(x=>
+    `<div class="noft"><b>${x.title}</b><br><span style="color:var(--tx3)">${DAYS[x.d]} ${PERIODS.find(p=>p.k===x.p).n} · 该时段有课${x.cid?'（'+course(x.cid).name+'）':''}${x.minutes?' · '+x.minutes+' 分钟':''}</span></div>`).join('')
+    :'<div class="empty">暂无。在有课的格子里添加计划会自动标黄</div>';
+
+  document.getElementById('sFreeN').textContent=free.length?`${free.length} 个`:'';
+  document.getElementById('sFree').innerHTML=free.length?`<div style="font-size:12.5px;color:var(--tx2);line-height:2">${free.map(f=>`<span class="tag" style="margin:0 4px 4px 0">${f}</span>`).join('')}</div><div style="color:var(--tx3);font-size:11.5px;margin-top:6px">这些格子本周既没课也没安排，可用来补进度</div>`:'<div class="empty">本周每个时段都有安排了</div>';
+
+  const as=assigns.filter(a=>a.week===W&&a.status!=='已提交'&&a.status!=='已批改');
+  document.getElementById('sAsN').textContent=as.length?`${as.length} 条`:'';
+  document.getElementById('sAs').innerHTML=as.length?as.map(a=>{
+    const c=course(a.c),pr=a.todos&&a.todos.length?a.todos.filter(t=>t.done).length:0;
+    return `<div class="noft" style="cursor:pointer" onclick="openAs('${a.id}')"><b>${a.title}</b>
+      ${a.todos&&a.todos.length?`<span class="tprog ${pr===a.todos.length?'ok':''}" style="float:right">${pr}/${a.todos.length}</span>`:''}
+      <br><span style="color:var(--tx3)">${c.name} · 截止 ${a.due}</span></div>`}).join(''):'<div class="empty">本周没有待办作业</div>';
+}
+
+function openPlanAdd(d,p,srcId){
+  const cs=classesAt(W,d,p);
+  const hint=cs.length?`<div class="notice" style="display:flex;background:var(--warn-bg);border-color:#fcd34d;color:var(--warn)">
+     <span class="dot" style="background:#d97706"></span><span>本周该时段有课：${cs.map(s=>course(s.c).name).join('、')}。若计划在这里学<b>别的</b>内容，请勾选下方「上课时学别的」。</span></div>`:'';
+  const as=assigns.filter(a=>a.week===W&&a.status!=='已提交'&&a.status!=='已批改');
+  open(`<h2>添加学习计划</h2><div class="desc">第 ${W} 周 · ${DAYS[d]} ${PERIODS.find(x=>x.k===p).n}（${PERIODS.find(x=>x.k===p).t}）</div>
+  ${hint}
+  <div class="form">
+    <div class="full"><label>要做什么</label><input id="sp_t" placeholder="如：复习矩阵论第 2 章 + 做习题"></div>
+    <div><label>关联课程（可选）</label><select id="sp_c"><option value="">— 不关联 —</option>${courses.map(c=>`<option>${c.name}</option>`).join('')}</select></div>
+    <div><label>从本周作业带入（可选）</label><select id="sp_a"><option value="">— 手动填写 —</option>${as.map(a=>`<option value="${a.id}">${a.title}</option>`).join('')}</select></div>
+    <div><label>预计时长</label><select id="sp_m">${[30,60,90,120,180,240].map(x=>`<option ${x===60?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label>备注（可选）</label><input id="sp_n" placeholder="如：看完做 PPT 第 20 页"></div>
+    <div class="full"><label style="display:flex;align-items:center;gap:7px;font-weight:400">
+      <input type="checkbox" id="sp_clash" ${cs.length?'checked':''} style="width:auto;margin:0"> 上课时学别的（该时段有课，标黄提醒）</label></div>
+  </div>
+  <div class="foot"><button class="btn" onclick="closeM()">取消</button><button class="btn pri" onclick="savePlan(${d},'${p}')">保存</button></div>`);
+  const sa=document.getElementById('sp_a');
+  if(sa)sa.onchange=function(){
+    const a=assigns.find(x=>x.id===sa.value); if(!a)return;
+    document.getElementById('sp_t').value=a.title;
+    document.getElementById('sp_c').value=course(a.c).name;
+    const m=+a.hours||1; document.getElementById('sp_m').value=[30,60,90,120,180,240].reduce((b,x)=>Math.abs(x-m*60)<Math.abs(b-m*60)?x:b,30);
+  };
+}
+function savePlan(d,p){
+  const t=document.getElementById('sp_t').value.trim();
+  if(!t)return toast('请填写要做什么');
+  const nm=document.getElementById('sp_c').value;
+  const c=nm?courses.find(x=>x.name===nm):null;
+  plans.push({id:'pl'+Date.now(),week:W,d:d,p:p,cid:c?c.id:'',title:t,
+    minutes:+document.getElementById('sp_m').value,note:document.getElementById('sp_n').value.trim(),
+    done:false,clash:document.getElementById('sp_clash').checked});
+  closeM();render();toast('已添加到第 '+W+' 周 '+DAYS[d]+PERIODS.find(x=>x.k===p).n);
+}
+function togglePlanDone(id){const x=plans.find(v=>v.id===id);x.done=!x.done;render()}
+function delPlan(id){plans=plans.filter(x=>x.id!==id);render();toast('已删除该计划')}
+function copyLastWeek(){
+  if(W<=1)return toast('已经是第 1 周，没有上一周');
+  const src=plans.filter(x=>x.week===W-1);
+  if(!src.length)return toast('上一周没有计划');
+  src.forEach(x=>plans.push(Object.assign({},x,{id:'pl'+Date.now()+Math.random().toString(36).slice(2,6),week:W,done:false})));
+  render();toast('已复制 '+src.length+' 条上周计划到本周');
+}
+function clearWeekPlans(){
+  const n=plans.filter(x=>x.week===W).length;
+  if(!n)return toast('本周没有计划');
+  plans=plans.filter(x=>x.week!==W);render();toast('已清空本周 '+n+' 条计划');
+}
 
 function openCourse(id){
   const c=course(id),pal=PAL[c.color];
   const ss=slots.filter(s=>s.c===id),as=assigns.filter(a=>a.c===id);
+  const at=attText(c);
   open(`<h2>${c.name}</h2><div class="desc">${c.code} · ${c.cat} · ${c.credit} 学分 · 任课教师 ${c.teacher}</div>
    <div class="kv">
-     <div class="k">上课安排</div><div>${ss.map(s=>`${DAYS[s.d]} ${PERIODS.find(p=>p.k===s.p).n}（${PERIODS.find(p=>p.k===s.p).t}）· ${s.b} ${s.r} · ${s.w}`).join('<br>')}</div>
-     <div class="k">授课形式</div><div>${ss[0].mode}${ss[0].mode==='线上'?' · '+ss[0].r:''}</div>
+     <div class="k">上课安排</div><div>${ss.map(s=>`${DAYS[s.d]} ${PERIODS.find(p=>p.k===s.p).n}（${PERIODS.find(p=>p.k===s.p).t}）· ${s.b} ${s.r} · ${s.w}`).join('<br>')||'—'}</div>
+     ${ss.length?`<div class="k">授课形式</div><div>${ss[0].mode}${ss[0].mode==='线上'?' · '+ss[0].r:''}</div>`:''}
+     <div class="k">考勤方式</div><div><span class="attpill ${at?'set':''}">${at||'未填写'}</span>
+       <select id="att_sel" style="font-size:12px;padding:3px 6px;margin-left:6px">${ATT_OPTS.map(o=>`<option ${c.attendance===o?'selected':''}>${o}</option>`).join('')}</select>
+       <button class="btn sm" style="margin-left:6px" onclick="saveAtt('${id}')">保存</button>
+       <div style="color:var(--tx3);font-size:11.5px;margin-top:5px">可选项。不填就不显示，课表卡片上也不会带「考勤」标记。</div></div>
      <div class="k">作业总数</div><div>${as.length} 条（待办 ${as.filter(a=>a.status!=='已提交'&&a.status!=='已批改').length}）</div>
    </div>
    <div class="sec">该课程作业</div>
-   ${as.length?`<table class="tb"><tr><th>标题</th><th>类型</th><th>提交方式</th><th>教材 / PPT 章节</th><th>截止</th><th>状态</th></tr>
-   ${as.map(a=>`<tr><td>${a.title}</td><td>${a.type}</td><td>${a.method}</td><td>${a.material}</td><td>${a.due}</td><td>${a.status}</td></tr>`).join('')}</table>`:'<div class="empty">暂无作业</div>'}
+   ${as.length?`<table class="tb"><tr><th>标题</th><th>类型</th><th>提交方式</th><th>教材 / PPT 章节</th><th>截止</th><th>状态</th><th>待办</th></tr>
+   ${as.map(a=>`<tr><td>${a.title}</td><td>${a.type}</td><td>${a.method}</td><td>${a.material}</td><td>${a.due}</td><td>${a.status}</td>
+   <td>${a.todos&&a.todos.length?a.todos.filter(t=>t.done).length+'/'+a.todos.length:'—'}</td></tr>`).join('')}</table>`:'<div class="empty">暂无作业</div>'}
    <div class="foot"><button class="btn" onclick="closeM()">关闭</button><button class="btn pri" onclick="closeM();openNew('${id}')">为该课程添加作业</button></div>`);
+}
+function saveAtt(id){
+  const c=course(id);c.attendance=document.getElementById('att_sel').value;
+  closeM();render();toast(c.attendance==='（未填写）'?'已清除考勤方式':'考勤方式已保存：'+c.attendance);
 }
 
 function openAs(id){
@@ -778,9 +992,35 @@ function openAs(id){
     <div class="k">预估工时</div><div>${a.hours} 小时 · 占总成绩 ${a.weight}%</div>
     <div class="k">状态</div><div>${a.status} · 优先级 ${a.prio}</div>
   </div>
+  ${todoHTML(a)}
   <div class="foot"><button class="btn" onclick="closeM()">关闭</button>
   ${a.status==='已提交'||a.status==='已批改'?'':`<button class="btn pri" onclick="submitAs('${a.id}')">标记为已提交</button>`}</div>`);
 }
+
+/* ---- 作业待办清单 ---- */
+function todoHTML(a){
+  const td=a.todos||[], dn=td.filter(t=>t.done).length;
+  return `<div class="sec">待办清单
+    <span class="tprog ${td.length&&dn===td.length?'ok':''}" style="float:right">${td.length?dn+' / '+td.length+' 已完成':'把大作业拆成几步'}</span></div>
+  <div class="tdo">
+    ${td.length?td.map((t,i)=>`<div class="it ${t.done?'done':''}">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${a.id}',${i})" style="width:auto;margin:0">
+      <span>${t.t}</span><span class="del" onclick="delTodo('${a.id}',${i})">×</span></div>`).join('')
+      :'<div class="empty" style="padding:6px 0">还没有拆分子任务</div>'}
+    <div class="addrow">
+      <input id="td_new_${a.id}" placeholder="添加一条，回车即可保存" onkeydown="if(event.key==='Enter')addTodo('${a.id}')">
+      <button class="btn sm" onclick="addTodo('${a.id}')">添加</button>
+    </div>
+    ${td.length&&dn===td.length?'<div style="color:var(--ok);font-size:11.5px;margin-top:6px">全部完成，可以标记为已提交了</div>':''}
+  </div>`;
+}
+function toggleTodo(id,i){const a=assigns.find(x=>x.id===id);a.todos[i].done=!a.todos[i].done;render();openAs(id)}
+function addTodo(id){
+  const a=assigns.find(x=>x.id===id),el=document.getElementById('td_new_'+id),v=(el.value||'').trim();
+  if(!v)return toast('先写点内容');
+  a.todos=a.todos||[];a.todos.push({t:v,done:false});render();openAs(id);
+}
+function delTodo(id,i){const a=assigns.find(x=>x.id===id);a.todos.splice(i,1);render();openAs(id)}
 
 function submitAs(id){const a=assigns.find(x=>x.id===id);a.status='已提交';closeM();render();toast('已标记为提交：'+a.title)}
 
@@ -794,6 +1034,7 @@ function openNew(pre){
     <div><label>提交方式</label><select id="f_m">${['学习平台','邮箱','纸质','课堂提交','代码仓库','在线文档','无需提交'].map(x=>`<option>${x}</option>`).join('')}</select></div>
     <div><label>提交地址 / 对象</label><input id="f_target" placeholder="平台链接 / 邮箱 / 仓库地址"></div>
     <div class="full"><label>所需教材或 PPT 对应章节</label><input id="f_mat" placeholder="如：《机器学习》第 5 章 + 课件 P30–48"></div>
+    <div class="full"><label>待办清单（可选，每行一条）</label><textarea id="f_todo" rows="3" placeholder="看教材第 5 章&#10;整理公式推导&#10;写代码并跑通"></textarea></div>
     <div><label>所属周次</label><input id="f_week" type="number" value="${W}" min="1" max="${TOTAL_WEEKS}"></div>
     <div><label>截止时间</label><input id="f_due" type="datetime-local" value="2026-09-20T23:59"></div>
     <div><label>预估工时（小时）</label><input id="f_h" type="number" step="0.5" value="3"></div>
@@ -809,7 +1050,8 @@ function saveNew(){
     method:document.getElementById('f_m').value,target:document.getElementById('f_target').value,
     material:document.getElementById('f_mat').value||'（未指定）',
     due:document.getElementById('f_due').value.replace('T',' '),hours:+document.getElementById('f_h').value,
-    weight:+document.getElementById('f_w').value,status:'未开始',prio:'中'});
+    weight:+document.getElementById('f_w').value,status:'未开始',prio:'中',
+    todos:document.getElementById('f_todo').value.split('\n').map(s=>s.trim()).filter(Boolean).map(t=>({t:t,done:false}))});
   closeM();render();toast('作业已添加，并已归入选定课程');
 }
 
@@ -869,12 +1111,45 @@ document.getElementById('btnOcr').onclick=openOcr;
 document.getElementById('btnNew').onclick=()=>openNew();
 document.getElementById('changeBar').onclick=()=>{if(MM.length)openMismatch();else openOcr()};
 document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function openPlanPicker(){
+  let h=`<h2>添加学习计划</h2><div class="desc">第 ${W} 周 · 先挑一个时段</div>
+  <table class="tb"><tr><th>时间</th>${DAYS.map(d=>`<th>${d}</th>`).join('')}</tr>`;
+  PERIODS.forEach(p=>{
+    h+=`<tr><td><b>${p.n}</b></td>`;
+    DAYS.forEach((d,i)=>{
+      const cs=classesAt(W,i,p.k),n=plansAt(W,i,p.k).length;
+      h+=`<td style="text-align:center"><button class="btn sm" onclick="openPlanAdd(${i},'${p.k}')">${cs.length?'有课·':''}${n?n+' 条':'+'}</button></td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</table><div class="foot"><button class="btn" onclick="closeM()">取消</button></div>';
+  open(h);
+}
+document.getElementById('btnAddPlan').onclick=openPlanPicker;
+document.getElementById('btnCopyWeek').onclick=copyLastWeek;
+document.getElementById('btnClearWeek').onclick=clearWeekPlans;
 document.getElementById('btnPlanImp').onclick=openPlanImport;
 document.getElementById('btnClearSel').onclick=()=>{planCourses.forEach(c=>c.status='候选');render();toast('已清空全部选择')};
 document.getElementById('btnExport').onclick=()=>{
   const sel=planCourses.filter(c=>c.status==='已选');
-  const A=analyze();const bad=sel.filter(c=>A.sess.some(s=>s.cid===c.id&&A.gid[s.key]&&planCourses.find(x=>x.id===A.groups.find(g=>g.id===A.gid[s.key]).sess.find(y=>y.cid!==c.id).cid).status==='已选'));
-  toast(bad.length?`导出失败：${bad.map(c=>c.name).join('、')} 仍存在冲突`:`已导出 ${sel.length} 门课程为正式课表（${sel.reduce((s,c)=>s+c.credit,0)} 学分）`);
+  if(!sel.length)return toast('还没有选任何课程');
+  const A=analyze();
+  const bad=sel.filter(c=>A.sess.some(s=>s.cid===c.id&&A.gid[s.key]&&planCourses.find(x=>x.id===A.groups.find(g=>g.id===A.gid[s.key]).sess.find(y=>y.cid!==c.id).cid).status==='已选'));
+  if(bad.length)return toast(`导出失败：${[...new Set(bad.map(c=>c.name))].join('、')} 仍存在冲突`);
+  courses.length=0;slots.length=0;
+  let ci=0,si=0;
+  sel.forEach(pc=>{
+    const id='c'+(++ci);
+    courses.push({id:id,name:pc.name,code:pc.code,teacher:pc.teacher,credit:pc.credit,
+      cat:pc.cat||'选修',color:(ci-1)%8,attendance:pc.attendance||''});
+    pc.times.forEach(t=>{
+      periodsOf(t).forEach(pk=>{
+        slots.push({id:'s'+(++si),c:id,d:t.d,p:pk,b:'',r:pc.room||'',w:t.wk,weeks:t.weeks.slice(),mode:'线下'});
+      });
+    });
+  });
+  setMode('term');
+  toast(`已生成正式课表：${sel.length} 门课 · ${slots.length} 个排课时段 · ${sel.reduce((s,c)=>s+c.credit,0)} 学分`);
 };
 render();
 </script>
@@ -908,7 +1183,7 @@ function put(t,s){ if(!s||!s.length) return; t.length=0; for(var i=0;i<s.length;
 function persist(){
   try{ nsSet(JSON.stringify({
     courses:courses, slots:slots, events:events, assigns:assigns,
-    changes:changes, planCourses:planCourses, W:W })); }catch(e){}
+    changes:changes, planCourses:planCourses, plans:plans, W:W })); }catch(e){}
 }
 function restore(){
   var raw=null; try{ raw=nsGet(); }catch(e){}
@@ -918,6 +1193,7 @@ function restore(){
     put(courses,d.courses); put(slots,d.slots); put(events,d.events); put(planCourses,d.planCourses);
     if(d.assigns) assigns=d.assigns;
     if(d.changes) changes=d.changes;
+    if(d.plans) plans=d.plans;
     if(typeof d.W==='number') W=d.W;
     return true;
   }catch(e){ return false; }
@@ -1154,6 +1430,7 @@ function openMore(){
      '<div class="k">课程</div><div>'+courses.length+' 门</div>'+
      '<div class="k">排课</div><div>'+slots.length+' 条</div>'+
      '<div class="k">作业</div><div>'+assigns.length+' 条</div>'+
+     '<div class="k">学习计划</div><div>'+plans.length+' 条</div>'+
      '<div class="k">选课清单</div><div>'+planCourses.length+' 门</div></div>';
   h+='<div class="sec">操作</div>';
   h+='<div style="display:flex;flex-direction:column;gap:8px">'+
@@ -1162,7 +1439,7 @@ function openMore(){
   h+='<div class="foot"><button class="btn pri" onclick="closeM()">关闭</button></div>';
   open(h);
   document.getElementById('mExp').onclick=function(){
-    var data={courses:courses,slots:slots,events:events,assigns:assigns,changes:changes,planCourses:planCourses,W:W};
+    var data={courses:courses,slots:slots,events:events,assigns:assigns,changes:changes,planCourses:planCourses,plans:plans,W:W};
     var txt=JSON.stringify(data);
     if(window.Android&&window.Android.saveFile){ window.Android.saveFile('课表备份.json',txt); }
     else { try{ localStorage.setItem('gs_backup',txt); toast('已保存到 App 内部备份区'); }catch(e){ toast('导出失败'); } }

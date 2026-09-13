@@ -4,7 +4,9 @@
 
 - **学期课表**：按周、按天展示，每天固定三时段（上午 08:30–11:30、下午 14:00–17:00、晚上 18:00–21:00），支持单双周与周次区间。
 - **逐格选课**：课程表每个格子（星期 × 时段）是一个下拉框，选一门课或选「无课」，21 个格子填完即得最终课表。冲突的课自动排除，周次不重叠的可以同时选。
-- **作业管理**：每条作业记录提交方式、提交地点、内容、教材 / PPT 章节、截止时间。
+- **作业管理**：每条作业记录提交方式、提交地点、内容、教材 / PPT 章节、截止时间；支持拆成**待办子清单**并跟踪 `已完成/总数`。
+- **每日学习计划**：按「星期 × 时段」格子安排本周学什么，自动感知单双周（本周不上的课灰显）。没课的格子直接安排；有课却要学别的会标黄并汇总到「上课时学别的」。支持复制上周计划、统计空闲时段。
+- **考勤方式**：每门课可填（也可不填）点名 / 扫码 / 随堂小测等，填了才在课表卡片上显示。
 - **Excel 导入**：App 内直接选 `.xlsx` 解析，先预览勾选再写入课表。
 
 ## 目录结构
@@ -19,7 +21,7 @@
 │   │   ├── assets/index.html   移动端页面（由 build_app.js 从桌面原型生成）
 │   │   ├── assets/xlsx.full.min.js   SheetJS，用于 App 内解析 Excel
 │   │   └── java/.../MainActivity.java 原生壳：文件选择、本地存储兜底、返回键处理
-│   ├── out/GradSchedule-v1.1.apk      已签名 APK（0.34MB）
+│   ├── out/GradSchedule-v1.2.apk      已签名 APK（0.34MB）
 │   └── 安装说明.md
 └── tools/
     ├── gen_plan_data.py        解析教务 Excel → 生成选课清单数据（Python）
@@ -40,7 +42,7 @@
 ```bash
 node tools/dl.js        # 首次执行，下载 Android SDK 平台与 build-tools（约 350MB）
 node tools/build_app.js # 生成移动端页面
-node tools/build_apk.js # 输出 android/out/GradSchedule-v1.1.apk
+node tools/build_apk.js # 输出 android/out/GradSchedule-v1.2.apk
 ```
 
 **冒烟测试**（需 `npm i jsdom`）：
