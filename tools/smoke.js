@@ -31,7 +31,7 @@ ok('无脚本错误', errs.length === 0 ? true : errs.slice(0, 3).join(' | '));
 ok('grid 已渲染', doc.getElementById('grid').innerHTML.length > 200);
 ok('个人课表已清空（无课程卡片）', doc.querySelectorAll('#grid .cls').length === 0);
 ok('显示空状态引导', doc.getElementById('termEmpty').innerHTML.indexOf('课表还是空的') >= 0);
-ok('网格外层滚动容器', !!doc.querySelector('.gridwrap'));
+ok('纵向视图容器已就位（窄屏启用）', !!doc.getElementById('agenda'));
 ok('XLSX 可用', typeof win.XLSX === 'object');
 ok('持久化已写入 localStorage', !!win.localStorage.getItem('gs_data_v1'));
 
@@ -120,7 +120,7 @@ ok('清单中存在双周课程', win.eval(`planCourses.filter(c=>c.times.some(x
 
 win.eval("setMode('study');W=1;render()");
 ok('学习计划模式已切换', win.eval('MODE') === 'study');
-ok('21 个格子均有添加入口', doc.querySelectorAll('#grid .addpl').length === 21 ? true : doc.querySelectorAll('#grid .addpl').length);
+ok('15 个格子均有添加入口（周一至周五）', doc.querySelectorAll('#grid .addpl').length === 15 ? true : doc.querySelectorAll('#grid .addpl').length);
 const oddSlot = win.eval(`(function(){const s=slots[0];return {d:s.d,p:s.p,w:s.w}})()`);
 console.log('  单周样本:', `${['周一','周二','周三','周四','周五','周六','周日'][oddSlot.d]} ${oddSlot.p} ${oddSlot.w}`);
 ok('第 1 周有课', win.eval(`classesAt(1,${oddSlot.d},'${oddSlot.p}').length`) === 1);
@@ -177,6 +177,29 @@ if (!fs.existsSync(XLSX_FILE)) {
   const withTime = res.sample.filter(c => c.times).length;
   ok('样例含上课时间', withTime > 0 ? true : withTime);
 }
+
+console.log('\n=== 5. 窄屏纵向视图（手机：只上下滚、无横向滚） ===');
+win.eval(`window.matchMedia=function(q){return {matches:/max-width:\\s*900px/.test(q),media:q,addListener:function(){},removeListener:function(){},addEventListener:function(){},removeEventListener:function(){}}};
+  window.dispatchEvent(new Event('resize'));`);
+win.eval("setMode('term')");
+const agd = doc.querySelectorAll('#agenda .agd');
+ok('纵向视图渲染 5 天（周一至周五）', agd.length === 5 ? true : agd.length);
+ok('每天 3 个时段', doc.querySelectorAll('#agenda .agd:first-child .agp').length === 3 ? true : doc.querySelectorAll('#agenda .agd:first-child .agp').length);
+ok('宽表格在窄屏隐藏', doc.getElementById('grid').style.display === 'none');
+ok('纵向视图不含周六/周日', doc.getElementById('agenda').textContent.indexOf('周六') < 0 && doc.getElementById('agenda').textContent.indexOf('周日') < 0);
+ok('课程长条渲染（非空态）', doc.querySelectorAll('#agenda .agrow').length > 0 ? true : doc.querySelectorAll('#agenda .agrow').length);
+ok('周末课程有兜底区块', (function () {
+  const has = win.eval("slots.some(s=>s.d>=5)");
+  const box = doc.getElementById('wkBox').innerHTML.indexOf('周末') >= 0;
+  return has ? box : true;
+})());
+win.eval("setMode('plan')");
+ok('选课模式窄屏有下拉', doc.querySelectorAll('#agenda select').length > 0 ? true : doc.querySelectorAll('#agenda select').length);
+win.eval("setMode('study')");
+ok('学习计划窄屏有添加入口', doc.querySelectorAll('#agenda .addpl').length === 15 ? true : doc.querySelectorAll('#agenda .addpl').length);
+win.eval("setMode('term')");
+const wide = win.eval(`document.documentElement.scrollWidth <= window.innerWidth + 1`);
+ok('页面无横向溢出', wide);
 
 console.log('\n=== 4. 结果 ===');
 console.log(errs.length ? '存在 ' + errs.length + ' 个错误' : '全部通过');

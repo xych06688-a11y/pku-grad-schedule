@@ -169,6 +169,53 @@
   .tprog.ok{color:var(--ok)}
   .attpill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;background:#f3f4f6;border:1px solid var(--line);color:var(--tx2)}
   .attpill.set{background:var(--accent-soft);border-color:#c7d2fe;color:#3730a3}
+
+  /* ===== 窄屏纵向视图（只上下滚，不横向滚） ===== */
+  .ag{display:block}
+  .agd{border:1px solid var(--line);border-radius:11px;margin-bottom:10px;overflow:hidden;background:#fff}
+  .agd.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .agd-hd{display:flex;align-items:baseline;gap:8px;padding:9px 12px;background:#fafbfc;border-bottom:1px solid var(--line)}
+  .agd.today .agd-hd{background:var(--accent-soft)}
+  .agd-hd b{font-size:14.5px}
+  .agd-hd span{font-size:11.5px;color:var(--tx3)}
+  .agd-hd .n{margin-left:auto;font-size:11px;color:var(--tx3)}
+  .agp{display:flex;border-top:1px dashed var(--line);align-items:stretch}
+  .agp:first-child{border-top:none}
+  .agp-hd{width:62px;flex:none;padding:9px 4px;background:#fafbfc;border-right:1px solid var(--line);text-align:center;font-size:12px;color:var(--tx2)}
+  .agp-hd i{display:block;font-style:normal;font-size:10px;color:var(--tx3);margin-top:2px;line-height:1.3}
+  .agp-bd{flex:1;min-width:0;padding:7px 9px}
+  .agrow{position:relative;border-left:3px solid #6366f1;border-radius:6px;padding:7px 9px;margin:4px 0;
+    background:#eef2ff;color:#3730a3;font-size:12px;line-height:1.5;cursor:pointer}
+  .agrow .nm{display:block;font-weight:600;font-size:13px;word-break:break-all;padding-right:26px}
+  .agrow .mt{display:block;font-size:11px;opacity:.86;margin-top:2px;word-break:break-all}
+  .agrow.off{background:#f3f4f6;border-left-color:#d1d5db;color:#9ca3af}
+  .agrow.ev{background:#f8fafc;border-left-color:#9ca3af;border-left-style:dashed;color:var(--tx2)}
+  .agrow.free{background:#fafbfc;border-left-color:transparent;color:#9ca3af;font-size:11.5px;padding:6px 4px;cursor:default}
+  .agrow .badge{position:absolute;top:6px;right:6px;min-width:17px;height:17px;border-radius:9px;background:var(--danger);
+    color:#fff;font-size:10px;line-height:17px;text-align:center;padding:0 4px}
+  .agrow .flag{position:absolute;top:6px;right:6px;font-size:9.5px;background:#f59e0b;color:#fff;border-radius:3px;padding:1px 4px}
+  .agp-bd select{width:100%;font-size:12px;padding:6px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--tx);font-family:inherit}
+  .agpick{margin-top:5px;font-size:11px;color:var(--tx3);display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .agpick button{border:none;background:none;color:var(--accent);font-size:11px;padding:0;cursor:pointer}
+  .agpl{display:block;width:100%;text-align:left;border:1px solid #c7d2fe;background:var(--accent-soft);color:#3730a3;
+    border-radius:6px;padding:6px 8px;margin:4px 0;font-size:12px;cursor:pointer;line-height:1.55}
+  .agpl.done{background:#f9fafb;border-color:var(--line);color:var(--tx3)}
+  .agpl.done .pt{text-decoration:line-through}
+  .agpl.warn{border-color:#fcd34d;background:var(--warn-bg);color:var(--warn)}
+  .agpl .mi{display:block;font-size:10.5px;opacity:.85}
+  .agpl .x{float:right;color:var(--tx3);font-weight:700;padding:0 2px}
+  .agmini{font-size:11px;color:var(--tx2);background:#f3f4f6;border:1px solid var(--line);border-radius:4px;padding:3px 6px;margin:4px 0;display:inline-block}
+  .agmini.on{background:var(--accent-soft);border-color:#c7d2fe;color:#3730a3}
+  .agmini.off{opacity:.55;text-decoration:line-through}
+  .wkbox{margin:2px 0 10px;border:1px solid #fde68a;background:#fffdf7;border-radius:11px;padding:10px 12px}
+  .wkbox .hd{font-size:12.5px;font-weight:600;color:#92400e;margin-bottom:4px}
+  .wkbox .d{font-size:11.5px;color:var(--tx2);line-height:1.9}
+  .wkbox .agrow{margin:5px 0}
+  @media (max-width:900px){
+    .agd-hd{padding:8px 11px}
+    .agp-hd{width:56px;font-size:11.5px}
+    .agrow .nm{font-size:13.5px}
+  }
 </style>
 </head>
 <body>
@@ -222,6 +269,8 @@
         <span class="sub" id="wStat"></span>
       </div>
       <table class="grid" id="grid"></table>
+      <div id="agenda" class="ag" style="display:none"></div>
+      <div id="wkBox"></div>
       <div id="termEmpty"></div>
       <div id="pendingBox"></div>
       <div class="legend">
@@ -296,6 +345,8 @@ const PAL=[{bg:'#eef2ff',bd:'#6366f1',tx:'#3730a3'},{bg:'#ecfdf5',bd:'#10b981',t
 const SEM_START='2026-09-07', TOTAL_WEEKS=18;
 const NOW=new Date(2026,8,13,10,20);
 const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+const NDAY=5;                       /* 课表只显示周一至周五 */
+const WEEKEND=[5,6];                /* 周六 / 周日：不占列，单独兜底展示 */
 const PERIODS=[{k:'morning',n:'上午',t:'08:30–11:30'},{k:'afternoon',n:'下午',t:'14:00–17:00'},{k:'evening',n:'晚上',t:'18:00–21:00'}];
 
 const courses=[];
@@ -424,13 +475,13 @@ function renderTerm(){
   MM=checkMismatch();
   const dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
   document.getElementById('wTitle').textContent=`第 ${W} 周`;
-  document.getElementById('wRange').textContent=`${dates[0]} — ${dates[6]}${isCur?' · 本周':''}`;
+  document.getElementById('wRange').textContent=`${dates[0]} — ${dates[NDAY-1]}${isCur?' · 本周':''}`;
   let html='<thead><tr><th style="width:96px">时间</th>';
-  DAYS.forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
+  DAYS.slice(0,NDAY).forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
   html+='</tr></thead><tbody>';
   PERIODS.forEach(p=>{
     html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
-    for(let i=0;i<7;i++){
+    for(let i=0;i<NDAY;i++){
       const isToday=isCur&&i===todayIdx;
       const isNow=isToday&&((p.k==='morning'&&NOW.getHours()<12)||(p.k==='afternoon'&&NOW.getHours()>=12&&NOW.getHours()<17)||(p.k==='evening'&&NOW.getHours()>=17));
       html+=`<td class="cell ${isToday?'today':''} ${isNow?'cur':''}">`;
@@ -534,11 +585,11 @@ function renderPlan(){
   const A=analyze();
   document.getElementById('grid').className='grid plan';
   let html='<thead><tr><th style="width:96px">时间</th>';
-  DAYS.forEach(d=>{html+=`<th>${d}</th>`});
+  DAYS.slice(0,NDAY).forEach(d=>{html+=`<th>${d}</th>`});
   html+='</tr></thead><tbody>';
   PERIODS.forEach(p=>{
     html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
-    for(let d=0;d<7;d++){
+    for(let d=0;d<NDAY;d++){
       const here=A.sess.filter(s=>s.t.d===d&&periodsOf(s.t).includes(p.k));
       const sel=here.find(s=>s.c.status==='已选');
       html+='<td class="cell">';
@@ -754,6 +805,124 @@ function doPlanImport(){
   if(!out.length)return toast('未能解析出课程，请检查是否包含课程名与上课时间');
   planCourses=out;closeM();render();toast(`已导入 ${out.length} 门课程，正在检测时间冲突…`);
 }
+/* ============ 窄屏纵向视图：整屏铺满，只上下滚、不横向滚 ============ */
+function isNarrow(){try{return !!(window.matchMedia&&window.matchMedia('(max-width:900px)').matches)}catch(e){return false}}
+function syncNarrow(){
+  const g=document.getElementById('grid'),ag=document.getElementById('agenda');
+  if(!ag||!g)return;
+  if(isNarrow()){g.style.display='none';ag.style.display='block';ag.innerHTML=agendaHTML()}
+  else{g.style.display='';ag.style.display='none';ag.innerHTML=''}
+}
+function agStyle(active,pal){
+  return 'background:'+(active?pal.bg:'#f3f4f6')+';border-left-color:'+(active?pal.bd:'#d1d5db')+';color:'+(active?pal.tx:'#9ca3af');
+}
+function agTerm(d,p){
+  const ss=slots.filter(s=>s.d===d&&s.p===p.k);let h='';
+  ss.forEach(s=>{
+    const c=course(s.c),pal=PAL[c.color],active=s.weeks.includes(W);
+    const n=assigns.filter(a=>a.c===s.c&&a.week===W&&a.status!=='已提交'&&a.status!=='已批改').length;
+    const ch=changes.find(x=>x.slot===s.id&&x.status==='待确认');
+    const mm=MM.find(x=>x.slot.id===s.id);
+    const at=attText(c), loc=[s.b,s.r].filter(Boolean).join(' ');
+    h+=`<div class="agrow ${active?'':'off'}" style="${agStyle(active,pal)}" onclick="openCourse('${c.id}')">
+      ${ch?'<span class="flag">变更</span>':mm?'<span class="flag">教室?</span>':n?`<span class="badge">${n}</span>`:''}
+      <span class="nm">${c.name}</span>
+      <span class="mt">${p.t} · ${c.teacher}${loc?' · '+loc:''} · ${s.w}${at?' · 考勤 '+at:''}${active?'':' · 本周不上'}</span></div>`;
+  });
+  events.filter(e=>e.d===d&&e.p===p.k&&e.weeks.includes(W)).forEach(e=>{
+    h+=`<div class="agrow ev"><span class="nm">${e.title}</span><span class="mt">${p.t} · ${e.loc} · ${e.w}</span></div>`;
+  });
+  return h||'<div class="agrow free">无课</div>';
+}
+function agStudy(d,p){
+  let h='';const cs=classesAt(W,d,p.k);
+  if(cs.length)cs.forEach(s=>{h+=`<span class="agmini on">${course(s.c).name} · ${s.w}</span>`});
+  else{
+    const maybe=slots.filter(s=>s.d===d&&s.p===p.k&&!s.weeks.includes(W));
+    if(maybe.length)h+=`<span class="agmini off">${maybe.map(s=>course(s.c).name).join('、')}（本周不上）</span>`;
+  }
+  plansAt(W,d,p.k).forEach(pl=>{
+    const cn=pl.cid?course(pl.cid):null;
+    h+=`<div class="agpl ${pl.done?'done':''} ${pl.clash?'warn':''}" onclick="togglePlanDone('${pl.id}')">
+      <span class="x" onclick="event.stopPropagation();delPlan('${pl.id}')">×</span>
+      <span class="pt">${pl.done?'☑ ':'☐ '}${pl.title}</span>
+      <span class="mi">${cn?cn.name+' · ':''}${pl.minutes?pl.minutes+' 分钟':''}${pl.note?' · '+pl.note:''}${pl.clash?' · 上课时学别的':''}</span></div>`;
+  });
+  h+=`<button class="addpl" onclick="openPlanAdd(${d},'${p.k}')">+ 添加计划</button>`;
+  return h;
+}
+function agPlan(d,p,A){
+  const here=A.sess.filter(s=>s.t.d===d&&periodsOf(s.t).includes(p.k));
+  if(!here.length)return '<div class="agrow free">该时段无候选课程</div>';
+  const sel=here.find(s=>s.c.status==='已选');
+  let h=`<select onchange="pick(${d},'${p.k}',this.value)"><option value="">— 无课 —</option>`+
+    here.map(s=>`<option value="${s.c.id}"${sel&&sel.c.id===s.c.id?' selected':''}>${s.c.name}${s.c.teacher&&s.c.teacher!=='—'?' · '+s.c.teacher:''}</option>`).join('')+'</select>';
+  const outN=here.filter(s=>s.c.status==='排除').length;
+  h+=`<div class="agpick"><span>共 ${here.length} 门可选${outN?' · 已排除 '+outN+' 门':''}</span>`+
+     (here.length>1?`<button onclick="openCell(${d},'${p.k}')">查看全部</button>`:'')+'</div>';
+  if(sel)h+=`<div class="agrow" style="background:#ecfdf5;border-left-color:#10b981;color:#065f46" onclick="openPlan('${sel.c.id}')">
+    <span class="nm">已选 · ${sel.c.name}</span>
+    <span class="mt">${sel.t.start}-${sel.t.end} · ${sel.c.teacher} · ${sel.c.credit} 学分 · ${sel.c.room||'—'} ${sel.t.wk}</span></div>`;
+  return h;
+}
+function agendaHTML(){
+  const A=MODE==='plan'?analyze():null, dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
+  let h='';
+  for(let d=0;d<NDAY;d++){
+    const isT=isCur&&d===todayIdx;
+    let cnt='';
+    if(MODE==='term'){const n=slots.filter(s=>s.d===d&&s.weeks.includes(W)).length;cnt=n?n+' 门次':''}
+    else if(MODE==='study'){const n=plansAt(W,d,'morning').length+plansAt(W,d,'afternoon').length+plansAt(W,d,'evening').length;cnt=n?n+' 条计划':''}
+    else if(A){const n=A.sess.filter(s=>s.t.d===d&&s.c.status==='已选').length;cnt=n?n+' 门已选':''}
+    h+=`<div class="agd${isT?' today':''}"><div class="agd-hd"><b>${DAYS[d]}</b><span>${dates[d]}${isT?' · 今天':''}</span><span class="n">${cnt}</span></div>`;
+    PERIODS.forEach(p=>{
+      const body=MODE==='term'?agTerm(d,p):(MODE==='study'?agStudy(d,p):agPlan(d,p,A));
+      h+=`<div class="agp"><div class="agp-hd">${p.n}<i>${p.t}</i></div><div class="agp-bd">${body}</div></div>`;
+    });
+    h+='</div>';
+  }
+  return h;
+}
+/* 周末（周六 / 周日）不占列，单独兜底展示，避免课程被丢掉 */
+function renderWeekend(){
+  const box=document.getElementById('wkBox');if(!box)return;
+  const P=k=>PERIODS.find(p=>p.k===k)||{n:'',t:''};let h='';
+  if(MODE==='plan'){
+    const A=analyze(),here=A.sess.filter(s=>WEEKEND.includes(s.t.d));
+    if(here.length){
+      h='<div class="wkbox"><div class="hd">周末时段课程 · '+here.length+' 门</div>';
+      here.forEach(s=>{const c=s.c,on=c.status==='已选';
+        h+=`<div class="agrow" style="background:${on?'#ecfdf5':'#f8fafc'};border-left-color:${on?'#10b981':'#d1d5db'};color:${on?'#065f46':'var(--tx)'}" onclick="openPlan('${c.id}')">
+          <span class="nm">${on?'已选 · ':''}${c.name}</span>
+          <span class="mt">${DAYS[s.t.d]} ${s.t.start}-${s.t.end} · ${s.t.wk} · ${c.teacher} · ${c.credit} 学分</span></div>`});
+      h+='</div>';
+    }
+  }else if(MODE==='term'){
+    const ss=slots.filter(s=>WEEKEND.includes(s.d));
+    if(ss.length){
+      h='<div class="wkbox"><div class="hd">周末排课 · '+ss.length+' 门次</div>';
+      WEEKEND.forEach(d=>{
+        const list=ss.filter(s=>s.d===d);if(!list.length)return;
+        h+=`<div class="d" style="color:var(--tx3);margin-top:4px">${DAYS[d]}</div>`;
+        list.forEach(s=>{const c=course(s.c),pal=PAL[c.color],active=s.weeks.includes(W),loc=[s.b,s.r].filter(Boolean).join(' ');
+          h+=`<div class="agrow ${active?'':'off'}" style="${agStyle(active,pal)}" onclick="openCourse('${c.id}')">
+            <span class="nm">${c.name}</span>
+            <span class="mt">${P(s.p).n} ${P(s.p).t} · ${c.teacher}${loc?' · '+loc:''} · ${s.w}${active?'':' · 本周不上'}</span></div>`});
+      });
+      h+='</div>';
+    }
+  }else{
+    const ss=slots.filter(s=>WEEKEND.includes(s.d)&&s.weeks.includes(W));
+    const ps=plans.filter(x=>x.week===W&&WEEKEND.includes(x.d));
+    if(ss.length||ps.length){
+      h='<div class="wkbox"><div class="hd">周末安排</div>';
+      ss.forEach(s=>{h+=`<div class="d">· ${DAYS[s.d]} ${P(s.p).n}：${course(s.c).name}</div>`});
+      ps.forEach(x=>{h+=`<div class="d">· ${DAYS[x.d]} ${P(x.p).n}：${x.title}${x.done?'（已完成）':''}</div>`});
+      h+='</div>';
+    }
+  }
+  box.innerHTML=h;
+}
 function setMode(m){
   MODE=m;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
@@ -768,8 +937,13 @@ function setMode(m){
   document.getElementById('sidePlan').style.display=m==='plan'?'block':'none';
   document.getElementById('changeBar').style.display='none';
   if(m==='term')renderTerm();else if(m==='study')renderStudy();else renderPlan();
+  renderWeekend();syncNarrow();
 }
-function render(){MODE==='term'?renderTerm():(MODE==='study'?renderStudy():renderPlan())}
+function render(){
+  MODE==='term'?renderTerm():(MODE==='study'?renderStudy():renderPlan());
+  renderWeekend();syncNarrow();
+}
+window.addEventListener('resize',function(){syncNarrow()});
 
 /* ============ 学习计划 ============ */
 function plansAt(w,d,p){return plans.filter(x=>x.week===w&&x.d===d&&x.p===p)}
@@ -779,14 +953,14 @@ function attText(c){return c&&c.attendance&&c.attendance!=='（未填写）'?c.a
 function renderStudy(){
   const dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
   document.getElementById('wTitle').textContent=`第 ${W} 周 · 学习计划`;
-  document.getElementById('wRange').textContent=`${dates[0]} — ${dates[6]}${isCur?' · 本周':''}`;
+  document.getElementById('wRange').textContent=`${dates[0]} — ${dates[NDAY-1]}${isCur?' · 本周':''}`;
   let html='<thead><tr><th style="width:96px">时间</th>';
-  DAYS.forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
+  DAYS.slice(0,NDAY).forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
   html+='</tr></thead><tbody>';
   let total=0,done=0,warn=0,free=[];
   PERIODS.forEach(p=>{
     html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
-    for(let i=0;i<7;i++){
+    for(let i=0;i<NDAY;i++){
       const isToday=isCur&&i===todayIdx;
       html+=`<td class="cell ${isToday?'today':''}">`;
       const cs=classesAt(W,i,p.k);

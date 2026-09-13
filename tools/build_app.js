@@ -1,5 +1,5 @@
 /* 由桌面原型生成移动端 APP 用 index.html：
-   - 注入移动端样式（横向滚动网格 / 底部抽屉 / 触控尺寸）
+   - 注入移动端样式（纵向日视图 / 底部抽屉 / 触控尺寸，禁止横向滚动）
    - 注入本地持久化（localStorage）
    - 注入真实 Excel 解析导入（SheetJS）
 */
@@ -16,14 +16,13 @@ html = html.replace(/<meta name="viewport"[^>]*>/,
 
 /* ---------------- 2. 移动端样式 ---------------- */
 const CSS = `
-  html{-webkit-text-size-adjust:100%}
-  body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
-  .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+  body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain;overflow-x:hidden}
   .appmore{position:fixed;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;display:none}
   @media (max-width:900px){
     body{padding:0 0 24px}
-    .wrap{max-width:100%}
-    .topbar{position:sticky;top:0;z-index:40;background:var(--bg);margin:0 0 10px;padding:10px 12px;gap:8px;
+    .wrap{max-width:100%;overflow-x:hidden}
+    .topbar{position:sticky;top:0;z-index:40;background:var(--bg);margin:0 0 10px;padding:10px 12px;gap:8px;flex-wrap:wrap;
       padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line)}
     .brand{font-size:15px;flex:1 1 100%;margin:0}
     .brand span{display:none}
@@ -32,7 +31,7 @@ const CSS = `
     .main{grid-template-columns:1fr;gap:10px;padding:0 10px}
     .card{padding:11px;border-radius:10px}
     .side .card{margin-bottom:10px}
-    table.grid{min-width:640px}
+    table.grid{width:100%;min-width:0;table-layout:fixed}
     td.timecell{width:54px;padding:8px 2px;font-size:11px}
     td.timecell i{display:none}
     td.timecell b{font-size:11.5px}
@@ -77,13 +76,8 @@ if (html === before) { console.error('!! SheetJS 注入失败：未匹配到主�
 /* ---------------- 4. 移动端脚本 ---------------- */
 const JS = `
 (function(){
-/* ============ 网格横向滚动容器 ============ */
-var gEl=document.getElementById('grid');
-if(gEl && gEl.parentNode.className.indexOf('gridwrap')<0){
-  var wrap=document.createElement('div'); wrap.className='gridwrap';
-  gEl.parentNode.insertBefore(wrap,gEl); wrap.appendChild(gEl);
-}
-
+/* ============ 横向滚动彻底关闭（一体式纵向视图，只上下滚） ============ */
+try{ document.documentElement.style.overflowX='hidden'; document.body.style.overflowX='hidden'; }catch(e){}
 /* ============ 本地持久化 ============ */
 var KEY='gs_data_v1';
 /* 优先走原生 SharedPreferences（file:// 下 localStorage 可能不可用），失败降级 localStorage */
