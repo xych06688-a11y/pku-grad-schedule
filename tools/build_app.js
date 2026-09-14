@@ -76,8 +76,6 @@ if (html === before) { console.error('!! SheetJS 注入失败：未匹配到主�
 /* ---------------- 4. 移动端脚本 ---------------- */
 const JS = `
 (function(){
-/* ============ 横向滚动彻底关闭（一体式纵向视图，只上下滚） ============ */
-try{ document.documentElement.style.overflowX='hidden'; document.body.style.overflowX='hidden'; }catch(e){}
 /* ============ 本地持久化 ============ */
 var KEY='gs_data_v1';
 /* 优先走原生 SharedPreferences（file:// 下 localStorage 可能不可用），失败降级 localStorage */
