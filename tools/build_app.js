@@ -16,12 +16,12 @@ html = html.replace(/<meta name="viewport"[^>]*>/,
 
 /* ---------------- 2. 移动端样式 ---------------- */
 const CSS = `
-  html{-webkit-text-size-adjust:100%;overflow-x:hidden}
-  body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain;overflow-x:hidden}
+  html{-webkit-text-size-adjust:100%}
+  body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
   .appmore{position:fixed;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;display:none}
   @media (max-width:900px){
     body{padding:0 0 24px}
-    .wrap{max-width:100%;overflow-x:hidden}
+    .wrap{max-width:100%}
     .topbar{position:sticky;top:0;z-index:40;background:var(--bg);margin:0 0 10px;padding:10px 12px;gap:8px;flex-wrap:wrap;
       padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line)}
     .brand{font-size:15px;flex:1 1 100%;margin:0}
