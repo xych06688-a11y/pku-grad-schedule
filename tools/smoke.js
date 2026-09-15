@@ -25,7 +25,11 @@ const dom = new JSDOM(HTML, {
   }
 });
 const win = dom.window, doc = win.document;
-const ok = (n, v) => { const pass = (v === true); console.log((pass ? '  OK  ' : ' FAIL ') + n + (pass ? '' : '  -> ' + v)); };
+const ok = (n, v) => {
+  const pass = (v === true);
+  console.log((pass ? '  OK  ' : ' FAIL ') + n + (pass ? '' : '  -> ' + v));
+  if (!pass) errs.push(n + ' -> ' + v);
+};
 
 ok('无脚本错误', errs.length === 0 ? true : errs.slice(0, 3).join(' | '));
 ok('grid 已渲染', doc.getElementById('grid').innerHTML.length > 200);
@@ -213,15 +217,27 @@ win.eval('gotoWeek(2)');
 ok('第 2 周不再显示单周课', doc.getElementById('agenda').innerHTML.indexOf(cname) < 0);
 ok('切换后下拉同步到第 2 周', doc.getElementById('wSel').value === '2' ? true : doc.getElementById('wSel').value);
 
-/* 下节课考勤 */
+/* 下节课考勤：精确绑定到「第 N 周 · 周 X · 某一节」，其他周次不再显示 */
 win.eval('gotoWeek(1)');
 ok('默认没有「会考勤」', doc.getElementById('agenda').innerHTML.indexOf('会考勤') < 0);
-win.eval('courses[0].attNext=true;render()');
-ok('标记后课表显示「会考勤」', doc.getElementById('agenda').innerHTML.indexOf('会考勤') >= 0);
 const cidA = win.eval('courses[0].id');
 win.eval(`toggleAttNext('${cidA}')`);
-ok('取消标记生效', win.eval('courses[0].attNext') === false);
-win.eval('closeM();courses[0].attNext=true;render()');
+const markW = win.eval('courses[0].attWeek');
+ok('标记后自动绑定到具体周次', markW >= 1 && markW <= 16 ? true : markW);
+win.eval('closeM()');
+win.eval('gotoWeek(' + markW + ')');
+ok('被标记的那周显示「会考勤」', doc.getElementById('agenda').innerHTML.indexOf('会考勤') >= 0);
+const chkAtt = win.eval(`(function(){
+  var c=courses[0]; if(!c.attWeek) return 'no-mark';
+  var pk=(PERIODS.find(function(p){return p.n===c.attPeriod})||{}).k||'morning';
+  var other=(c.attWeek===16?1:c.attWeek+1);
+  return (hwTags(c,c.attWeek,c.attDay,pk).indexOf('会考勤')>=0?'1':'0')
+       + (hwTags(c,other,c.attDay,pk).indexOf('会考勤')>=0?'1':'0');
+})()`);
+ok('其他周次不再显示「会考勤」', chkAtt === '10' ? true : chkAtt);
+win.eval(`toggleAttNext('${cidA}')`);
+ok('取消标记生效', win.eval('courses[0].attWeek') === 0);
+win.eval('closeM();gotoWeek(1)');
 
 /* 作业：第 1 周布置，下周一（第 2 周周一 09-14）截止 */
 win.eval(`assigns.length=0;
@@ -242,8 +258,46 @@ ok('黄色区块含作业标题', doc.getElementById('agenda').innerHTML.indexOf
 /* 交掉之后不再提醒 */
 win.eval(`assigns[0].status='已提交';gotoWeek(2)`);
 ok('提交后不再标黄', doc.querySelectorAll('#agenda .agd.due').length === 0 ? true : doc.querySelectorAll('#agenda .agd.due').length);
-win.eval(`assigns.length=0;courses[0].attNext=false;gotoWeek(1)`);
+win.eval(`assigns.length=0;courses.forEach(function(c){c.attWeek=0});gotoWeek(1)`);
 
-console.log('\n=== 4. 结果 ===');
+console.log('\n=== 7. 真实设备时间 / 当天高亮 / 今日通知栏 ===');
+/* 期望周次：用测试进程的真实当天日期独立算一遍，和页面里的 curWeek() 对照 */
+const semStart = win.eval('SEM_START');
+const expW = (function () {
+  const s = new Date(semStart + 'T00:00:00');
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  return Math.min(16, Math.max(1, Math.floor((d - s) / 6048e5) + 1));
+})();
+ok('周次按设备真实日期计算（不是写死的）', win.eval('curWeek()') === expW ? true : win.eval('curWeek()') + ' vs ' + expW);
+ok('NOW 是真实时钟（非固定 2026-09-13）', win.eval('NOW.getFullYear()+NOW.getMonth()*100+NOW.getDate()') === (new Date().getFullYear() + new Date().getMonth() * 100 + new Date().getDate()) ? true : win.eval('NOW.toString()'));
+
+win.eval('gotoWeek(curWeek());setMode("term")');
+const thToday = doc.querySelectorAll('#grid thead th.today');
+ok('本周视图只有一列被标为今天', thToday.length === 1 ? true : thToday.length);
+ok('今天列带「今天」角标', thToday.length > 0 && thToday[0].innerHTML.indexOf('今天') >= 0);
+ok('今天列有 td.cell.today 底色', doc.querySelectorAll('#grid td.cell.today').length === 3 ? true : doc.querySelectorAll('#grid td.cell.today').length);
+
+/* 今日通知栏：塞一条今天到期的作业 */
+ok('今日通知栏容器存在', !!doc.getElementById('todayBar'));
+const dueToday = win.eval(`(function(){var d=new Date(NOW.getFullYear(),NOW.getMonth(),NOW.getDate());
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' 23:59'})()`);
+win.eval(`assigns.length=0;
+  assigns.push({id:'hwT',c:courses[0].id,week:curWeek(),title:'今日作业A',type:'课后作业',content:'',
+    method:'学习平台',target:'',material:'',due:'${dueToday}',hours:1,weight:10,status:'未开始',prio:'中',todos:[]});
+  render()`);
+const bar = doc.getElementById('todayBar');
+ok('有待办时通知栏显示', bar.style.display === 'block' ? true : bar.style.display);
+ok('通知栏提示「今天要交」', bar.innerHTML.indexOf('今天要交') >= 0);
+ok('通知栏写明作业标题', bar.innerHTML.indexOf('今日作业A') >= 0);
+
+/* 全清后自动隐藏 */
+win.eval(`window.__slots=slots.splice(0,slots.length);plans.length=0;assigns.length=0;
+  courses.forEach(function(c){c.attWeek=0});render()`);
+ok('没有待办时通知栏自动隐藏', doc.getElementById('todayBar').style.display === 'none' ? true : doc.getElementById('todayBar').style.display);
+win.eval('slots.push.apply(slots,window.__slots);render()');
+
+console.log('\n=== 结果 ===');
 console.log(errs.length ? '存在 ' + errs.length + ' 个错误' : '全部通过');
 if (errs.length) errs.slice(0, 8).forEach(e => console.log('  ! ' + e.slice(0, 300)));
+try { win.close(); } catch (e) { }     /* 停掉页面里的定时器，避免 jsdom 挂住进程 */
+process.exit(errs.length ? 1 : 0);

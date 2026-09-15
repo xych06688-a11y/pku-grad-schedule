@@ -63,6 +63,12 @@ const CSS = `
     .toast{bottom:calc(24px + env(safe-area-inset-bottom))}
     table.tb{font-size:11.5px}
     table.tb th,table.tb td{padding:5px 6px}
+    .todaybar{padding:9px 11px;border-radius:11px;margin-bottom:10px}
+    .todaybar .tb-hd{gap:6px}
+    .todaybar .tb-hd b{font-size:13.5px}
+    .todaybar .tb-row{font-size:12px;line-height:1.85;align-items:flex-start}
+    .todaybar .tb-k{padding:1px 5px}
+    .agd.today{box-shadow:0 0 0 2px var(--accent)}
     .appmore{display:block}
     .wsel{font-size:14px;padding:8px 10px}
     .agtags{gap:6px;margin-top:6px}
