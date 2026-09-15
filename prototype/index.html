@@ -138,6 +138,17 @@
   .tag{font-size:11px;padding:1px 7px;border-radius:5px;background:#f3f4f6;color:var(--tx2);border:1px solid var(--line)}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#111827;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;display:none;z-index:99}
   .empty{color:var(--tx3);font-size:12px;text-align:center;padding:18px 0}
+  .wsel{font-size:13px;padding:6px 8px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--tx);font-family:inherit;font-weight:600}
+  .agtags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+  .attflag{font-size:10px;background:#ef4444;color:#fff;border-radius:4px;padding:1px 5px;font-weight:600;line-height:1.7}
+  .hwtag{font-size:10px;background:#f59e0b;color:#fff;border-radius:4px;padding:1px 5px;font-weight:600;line-height:1.7}
+  .dueline{display:block;font-size:10.5px;color:#b45309;margin-top:2px}
+  .agd.due{border-color:#f59e0b;box-shadow:0 0 0 1px #fcd34d}
+  .agd.due .agd-hd{background:#fef3c7}
+  .agdue{background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;color:#92400e;font-size:11.5px;padding:7px 9px;margin:7px 9px;line-height:1.7}
+  .agdue b{display:block;margin-bottom:2px}
+  th.due{background:#fef3c7!important;color:#92400e}
+  th.due .thdue{display:block;font-size:10px;color:#b45309;font-weight:600}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   @media (max-width:1180px){.main{grid-template-columns:1fr}.form,.map{grid-template-columns:1fr}}
 
@@ -262,7 +273,9 @@
       </div>
       <div class="weekbar" id="weekbar">
         <button class="btn sm" id="prevW">← 上一周</button>
-        <div><span class="t" id="wTitle">第 1 周</span> <span class="sub" id="wRange"></span></div>
+        <select id="wSel" class="wsel" onchange="gotoWeek(+this.value)" title="切换到第 N 周"></select>
+        <span class="t" id="wTitle" style="display:none">第 1 周</span>
+        <span class="sub" id="wRange"></span>
         <button class="btn sm" id="nextW">下一周 →</button>
         <button class="btn sm" id="todayW">回到本周</button>
         <div class="spacer"></div>
@@ -274,10 +287,12 @@
       <div id="termEmpty"></div>
       <div id="pendingBox"></div>
       <div class="legend">
-        <span><i style="background:#dc2626"></i>角标 = 待办作业数</span>
+        <span><i style="background:#f59e0b"></i>有作业</span>
+        <span><i style="background:#ef4444"></i>会考勤</span>
+        <span><i style="background:#fde68a;border:1px solid #f59e0b"></i>黄色当天 = 需交作业</span>
         <span><i style="background:#f59e0b"></i>左侧标记 = 存在待确认变更</span>
         <span><i style="background:#9ca3af;border:1px dashed #6b7280"></i>虚线 = 组会 / 讲座等非课程事件</span>
-        <span>灰显 = 本周不上（周次不匹配）</span>
+        <span>只显示本周有课的班次（单 / 双周自动判断）</span>
       </div>
     </section>
 
@@ -342,7 +357,7 @@ const PAL=[{bg:'#eef2ff',bd:'#6366f1',tx:'#3730a3'},{bg:'#ecfdf5',bd:'#10b981',t
 {bg:'#fff7ed',bd:'#f59e0b',tx:'#92400e'},{bg:'#fdf2f8',bd:'#ec4899',tx:'#9d174d'},
 {bg:'#f0f9ff',bd:'#0ea5e9',tx:'#075985'},{bg:'#fef2f2',bd:'#ef4444',tx:'#991b1b'},
 {bg:'#f5f3ff',bd:'#8b5cf6',tx:'#5b21b6'},{bg:'#f8fafc',bd:'#64748b',tx:'#334155'}];
-const SEM_START='2026-09-07', TOTAL_WEEKS=18;
+const SEM_START='2026-09-07', TOTAL_WEEKS=16;   /* 学期共 16 周，可用下拉在 第1周~第16周 之间切换 */
 const NOW=new Date(2026,8,13,10,20);
 const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
 const NDAY=5;                       /* 课表只显示周一至周五 */
@@ -475,9 +490,11 @@ function renderTerm(){
   MM=checkMismatch();
   const dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
   document.getElementById('wTitle').textContent=`第 ${W} 周`;
+  syncWeekSel();
   document.getElementById('wRange').textContent=`${dates[0]} — ${dates[NDAY-1]}${isCur?' · 本周':''}`;
   let html='<thead><tr><th style="width:96px">时间</th>';
-  DAYS.slice(0,NDAY).forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
+  DAYS.slice(0,NDAY).forEach((d,i)=>{const t=isCur&&i===todayIdx;const du=duesOnDay(W,i).length;
+    html+=`<th class="${t?'today':''}${du?' due':''}">${d}<span class="d">${dates[i]}</span>${du?`<span class="thdue">⚠ 交作业 ${du}</span>`:''}</th>`});
   html+='</tr></thead><tbody>';
   PERIODS.forEach(p=>{
     html+=`<tr><td class="timecell"><b>${p.n}</b><i>${p.t}</i></td>`;
@@ -485,17 +502,15 @@ function renderTerm(){
       const isToday=isCur&&i===todayIdx;
       const isNow=isToday&&((p.k==='morning'&&NOW.getHours()<12)||(p.k==='afternoon'&&NOW.getHours()>=12&&NOW.getHours()<17)||(p.k==='evening'&&NOW.getHours()>=17));
       html+=`<td class="cell ${isToday?'today':''} ${isNow?'cur':''}">`;
-      slots.filter(s=>s.d===i&&s.p===p.k).forEach(s=>{
-        const c=course(s.c),pal=PAL[c.color];const active=s.weeks.includes(W);
-        const n=assigns.filter(a=>a.c===s.c&&a.week===W&&a.status!=='已提交'&&a.status!=='已批改').length;
+      slots.filter(s=>s.d===i&&s.p===p.k&&s.weeks.includes(W)).forEach(s=>{
+        const c=course(s.c),pal=PAL[c.color];
         const ch=changes.find(x=>x.slot===s.id&&x.status==='待确认');
         const mm=MM.find(x=>x.slot.id===s.id);
-        html+=`<div class="cls" style="background:${active?pal.bg:'#f3f4f6'};border-left-color:${active?pal.bd:'#d1d5db'};color:${active?pal.tx:'#9ca3af'};opacity:${active?1:.55}" onclick="openCourse('${c.id}')">
+        html+=`<div class="cls" style="background:${pal.bg};border-left-color:${pal.bd};color:${pal.tx}" onclick="openCourse('${c.id}')">
           ${ch?'<span class="flag">变更</span>':mm?'<span class="flag">教室?</span>':''}
-          ${n?`<span class="badge">${n}</span>`:''}
           <span class="nm">${c.name}</span>
           <span class="mt">${c.teacher} · ${s.b} ${s.r}</span>
-          <span class="wk">${s.w}${attText(c)?' · 考勤 '+attText(c):''}</span></div>`;
+          <span class="wk">${s.w}${attText(c)?' · 考勤 '+attText(c):''}</span>${hwTags(c,W)}</div>`;
       });
       events.filter(e=>e.d===i&&e.p===p.k&&e.weeks.includes(W)).forEach(e=>{
         html+=`<div class="ev" onclick="toast('非课程事件：${e.title}｜${e.loc}')"><b>${e.title}</b>${e.loc} · ${e.w}</div>`;
@@ -806,6 +821,35 @@ function doPlanImport(){
   planCourses=out;closeM();render();toast(`已导入 ${out.length} 门课程，正在检测时间冲突…`);
 }
 /* ============ 窄屏纵向视图：整屏铺满，只上下滚、不横向滚 ============ */
+/* ============ 作业截止：相对周 / 星期，以及截止当天标黄 ============ */
+function isPending(a){return a.status!=='已提交'&&a.status!=='已批改'}
+function dueDate(a){const m=String(a.due||'').match(/(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+  if(!m)return null;const d=new Date(+m[1],+m[2]-1,+m[3],+(m[4]||23),+(m[5]||59));return isNaN(d)?null:d}
+function dueInfo(a){const d=dueDate(a);if(!d)return null;
+  return{w:Math.floor((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(SEM_START+'T00:00:00'))/6048e5)+1,
+         di:(d.getDay()+6)%7,t:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}}
+/* 相对当前查看周的说法：本周一 / 下周二 / 下下周三 / 第N周周四 / 已逾期 */
+function dueLabel(a,w){const i=dueInfo(a);if(!i)return a.due||'';
+  const dn=DAYS[i.di].replace('周','');          /* 周一 -> 一，避免拼成「下周周一」 */
+  if(i.w===w)return '本周'+dn+' '+i.t;
+  if(i.w===w+1)return '下周'+dn+' '+i.t;
+  if(i.w===w+2)return '下下周'+dn+' '+i.t;
+  if(i.w<w)return '已逾期（第'+i.w+'周'+dn+'）';
+  return '第'+i.w+'周'+DAYS[i.di]+' '+i.t}
+/* 某门课在第 w 周需要展示的作业：本周布置的，或本周内要交的 */
+function hwOf(cid,w){return assigns.filter(a=>a.c===cid&&isPending(a)&&(a.week===w||(dueInfo(a)&&dueInfo(a).w===w)))}
+/* 第 w 周第 d 天（0=周一）到期的未交作业 */
+function duesOnDay(w,d){return assigns.filter(a=>{const i=dueInfo(a);return !!i&&i.w===w&&i.di===d&&isPending(a)})}
+function hwTags(c,w){const n=hwOf(c.id,w).length;let s='';
+  if(c.attNext)s+='<span class="attflag">会考勤</span>';
+  if(n)s+=`<span class="hwtag">有作业${n>1?' ×'+n:''}</span>`;
+  return s?`<div class="agtags">${s}</div>`:''}
+function hwLine(c,w){const as=hwOf(c.id,w).filter(a=>dueInfo(a)).sort((x,y)=>dueDate(x)-dueDate(y));
+  if(!as.length)return '';const a=as[0];
+  return `<span class="dueline">⏰ ${a.title} · ${dueLabel(a,w)} 截止${as.length>1?'（等 '+as.length+' 项）':''}</span>`}
+function toggleAttNext(id){const c=course(id);c.attNext=!c.attNext;render();openCourse(id);toast(c.attNext?'已标记：下节课会考勤':'已取消考勤标记')}
+function syncWeekSel(){const s=document.getElementById('wSel');if(s&&+s.value!==W)s.value=W}
+function gotoWeek(w){W=Math.min(TOTAL_WEEKS,Math.max(1,w|0));syncWeekSel();render()}
 function isNarrow(){try{return !!(window.matchMedia&&window.matchMedia('(max-width:900px)').matches)}catch(e){return false}}
 function syncNarrow(){
   const g=document.getElementById('grid'),ag=document.getElementById('agenda');
@@ -817,17 +861,17 @@ function agStyle(active,pal){
   return 'background:'+(active?pal.bg:'#f3f4f6')+';border-left-color:'+(active?pal.bd:'#d1d5db')+';color:'+(active?pal.tx:'#9ca3af');
 }
 function agTerm(d,p){
-  const ss=slots.filter(s=>s.d===d&&s.p===p.k);let h='';
+  const ss=slots.filter(s=>s.d===d&&s.p===p.k&&s.weeks.includes(W));let h='';
   ss.forEach(s=>{
-    const c=course(s.c),pal=PAL[c.color],active=s.weeks.includes(W);
-    const n=assigns.filter(a=>a.c===s.c&&a.week===W&&a.status!=='已提交'&&a.status!=='已批改').length;
+    const c=course(s.c),pal=PAL[c.color];
     const ch=changes.find(x=>x.slot===s.id&&x.status==='待确认');
     const mm=MM.find(x=>x.slot.id===s.id);
     const at=attText(c), loc=[s.b,s.r].filter(Boolean).join(' ');
-    h+=`<div class="agrow ${active?'':'off'}" style="${agStyle(active,pal)}" onclick="openCourse('${c.id}')">
-      ${ch?'<span class="flag">变更</span>':mm?'<span class="flag">教室?</span>':n?`<span class="badge">${n}</span>`:''}
+    h+=`<div class="agrow" style="${agStyle(true,pal)}" onclick="openCourse('${c.id}')">
+      ${ch?'<span class="flag">变更</span>':mm?'<span class="flag">教室?</span>':''}
       <span class="nm">${c.name}</span>
-      <span class="mt">${p.t} · ${c.teacher}${loc?' · '+loc:''} · ${s.w}${at?' · 考勤 '+at:''}${active?'':' · 本周不上'}</span></div>`;
+      <span class="mt">${p.t} · ${c.teacher}${loc?' · '+loc:''} · ${s.w}${at?' · 考勤 '+at:''}</span>
+      ${hwLine(c,W)}${hwTags(c,W)}</div>`;
   });
   events.filter(e=>e.d===d&&e.p===p.k&&e.weeks.includes(W)).forEach(e=>{
     h+=`<div class="agrow ev"><span class="nm">${e.title}</span><span class="mt">${p.t} · ${e.loc} · ${e.w}</span></div>`;
@@ -870,11 +914,13 @@ function agendaHTML(){
   let h='';
   for(let d=0;d<NDAY;d++){
     const isT=isCur&&d===todayIdx;
+    const du=MODE==='term'?duesOnDay(W,d):[];
     let cnt='';
     if(MODE==='term'){const n=slots.filter(s=>s.d===d&&s.weeks.includes(W)).length;cnt=n?n+' 门次':''}
     else if(MODE==='study'){const n=plansAt(W,d,'morning').length+plansAt(W,d,'afternoon').length+plansAt(W,d,'evening').length;cnt=n?n+' 条计划':''}
     else if(A){const n=A.sess.filter(s=>s.t.d===d&&s.c.status==='已选').length;cnt=n?n+' 门已选':''}
-    h+=`<div class="agd${isT?' today':''}"><div class="agd-hd"><b>${DAYS[d]}</b><span>${dates[d]}${isT?' · 今天':''}</span><span class="n">${cnt}</span></div>`;
+    h+=`<div class="agd${isT?' today':''}${du.length?' due':''}"><div class="agd-hd"><b>${DAYS[d]}</b><span>${dates[d]}${isT?' · 今天':''}</span><span class="n">${cnt}</span></div>`;
+    if(du.length)h+=`<div class="agdue"><b>需提交作业（${du.length}）</b>${du.map(a=>`<div>· ${a.title} — ${course(a.c).name} · ${dueLabel(a,W)}</div>`).join('')}</div>`;
     PERIODS.forEach(p=>{
       const body=MODE==='term'?agTerm(d,p):(MODE==='study'?agStudy(d,p):agPlan(d,p,A));
       h+=`<div class="agp"><div class="agp-hd">${p.n}<i>${p.t}</i></div><div class="agp-bd">${body}</div></div>`;
@@ -898,17 +944,19 @@ function renderWeekend(){
       h+='</div>';
     }
   }else if(MODE==='term'){
-    const ss=slots.filter(s=>WEEKEND.includes(s.d));
-    if(ss.length){
+    const ss=slots.filter(s=>WEEKEND.includes(s.d)&&s.weeks.includes(W));
+    const wdues=[];WEEKEND.forEach(d=>duesOnDay(W,d).forEach(a=>wdues.push({d:d,a:a})));
+    if(ss.length||wdues.length){
       h='<div class="wkbox"><div class="hd">周末排课 · '+ss.length+' 门次</div>';
       WEEKEND.forEach(d=>{
         const list=ss.filter(s=>s.d===d);if(!list.length)return;
         h+=`<div class="d" style="color:var(--tx3);margin-top:4px">${DAYS[d]}</div>`;
-        list.forEach(s=>{const c=course(s.c),pal=PAL[c.color],active=s.weeks.includes(W),loc=[s.b,s.r].filter(Boolean).join(' ');
-          h+=`<div class="agrow ${active?'':'off'}" style="${agStyle(active,pal)}" onclick="openCourse('${c.id}')">
+        list.forEach(s=>{const c=course(s.c),pal=PAL[c.color],loc=[s.b,s.r].filter(Boolean).join(' ');
+          h+=`<div class="agrow" style="${agStyle(true,pal)}" onclick="openCourse('${c.id}')">
             <span class="nm">${c.name}</span>
-            <span class="mt">${P(s.p).n} ${P(s.p).t} · ${c.teacher}${loc?' · '+loc:''} · ${s.w}${active?'':' · 本周不上'}</span></div>`});
+            <span class="mt">${P(s.p).n} ${P(s.p).t} · ${c.teacher}${loc?' · '+loc:''} · ${s.w}</span></div>`});
       });
+      if(wdues.length)h+='<div class="agdue" style="margin:8px 0"><b>周末需交作业</b>'+wdues.map(x=>`<div>· ${DAYS[x.d]} ${x.a.title} — ${course(x.a.c).name}</div>`).join('')+'</div>';
       h+='</div>';
     }
   }else{
@@ -953,6 +1001,7 @@ function attText(c){return c&&c.attendance&&c.attendance!=='（未填写）'?c.a
 function renderStudy(){
   const dates=weekDates(W), isCur=(W===curWeek()), todayIdx=(NOW.getDay()+6)%7;
   document.getElementById('wTitle').textContent=`第 ${W} 周 · 学习计划`;
+  syncWeekSel();
   document.getElementById('wRange').textContent=`${dates[0]} — ${dates[NDAY-1]}${isCur?' · 本周':''}`;
   let html='<thead><tr><th style="width:96px">时间</th>';
   DAYS.slice(0,NDAY).forEach((d,i)=>{const t=isCur&&i===todayIdx;html+=`<th class="${t?'today':''}">${d}<span class="d">${dates[i]}</span></th>`});
@@ -1087,6 +1136,9 @@ function openCourse(id){
        <select id="att_sel" style="font-size:12px;padding:3px 6px;margin-left:6px">${ATT_OPTS.map(o=>`<option ${c.attendance===o?'selected':''}>${o}</option>`).join('')}</select>
        <button class="btn sm" style="margin-left:6px" onclick="saveAtt('${id}')">保存</button>
        <div style="color:var(--tx3);font-size:11.5px;margin-top:5px">可选项。不填就不显示，课表卡片上也不会带「考勤」标记。</div></div>
+     <div class="k">下节课考勤</div><div><span class="attpill ${c.attNext?'set':''}">${c.attNext?'会考勤':'未标记'}</span>
+       <button class="btn sm" style="margin-left:6px" onclick="toggleAttNext('${id}')">${c.attNext?'取消标记':'标记下节课考勤'}</button>
+       <div style="color:var(--tx3);font-size:11.5px;margin-top:5px">标记后，课表上这门课会显示红色「会考勤」，提醒这次别缺席。</div></div>
      <div class="k">作业总数</div><div>${as.length} 条（待办 ${as.filter(a=>a.status!=='已提交'&&a.status!=='已批改').length}）</div>
    </div>
    <div class="sec">该课程作业</div>
@@ -1224,9 +1276,11 @@ function closeM(){document.getElementById('ov').classList.remove('on')}
 let tm;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';clearTimeout(tm);tm=setTimeout(()=>t.style.display='none',2400)}
 
 document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeM()});
-document.getElementById('prevW').onclick=()=>{W=Math.max(1,W-1);render()};
-document.getElementById('nextW').onclick=()=>{W=Math.min(TOTAL_WEEKS,W+1);render()};
-document.getElementById('todayW').onclick=()=>{W=curWeek();render()};
+(function(){const s=document.getElementById('wSel');if(!s)return;
+  s.innerHTML=Array.from({length:TOTAL_WEEKS},(_,i)=>`<option value="${i+1}">第 ${i+1} 周</option>`).join('');})();
+document.getElementById('prevW').onclick=()=>gotoWeek(W-1);
+document.getElementById('nextW').onclick=()=>gotoWeek(W+1);
+document.getElementById('todayW').onclick=()=>gotoWeek(curWeek());
 document.getElementById('btnExcel').onclick=openExcel;
 document.getElementById('btnOcr').onclick=openOcr;
 document.getElementById('btnNew').onclick=()=>openNew();

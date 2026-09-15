@@ -201,6 +201,49 @@ win.eval("setMode('term')");
 const wide = win.eval(`document.documentElement.scrollWidth <= window.innerWidth + 1`);
 ok('页面无横向溢出', wide);
 
+console.log('\n=== 6. 周视图切换 / 会考勤 / 有作业 / 截止当天标黄 ===');
+/* 承接第 5 节：仍处于窄屏（手机）term 模式 */
+ok('周次下拉共 16 个选项（第 1~16 周）', doc.querySelectorAll('#wSel option').length === 16 ? true : doc.querySelectorAll('#wSel option').length);
+
+/* 单周课程：第 1 周显示，第 2 周（双周）不显示 */
+const cname = win.eval('courses[0].name');
+win.eval('W=1;render()');
+ok('第 1 周显示该课（单周）', doc.getElementById('agenda').innerHTML.indexOf(cname) >= 0);
+win.eval('gotoWeek(2)');
+ok('第 2 周不再显示单周课', doc.getElementById('agenda').innerHTML.indexOf(cname) < 0);
+ok('切换后下拉同步到第 2 周', doc.getElementById('wSel').value === '2' ? true : doc.getElementById('wSel').value);
+
+/* 下节课考勤 */
+win.eval('gotoWeek(1)');
+ok('默认没有「会考勤」', doc.getElementById('agenda').innerHTML.indexOf('会考勤') < 0);
+win.eval('courses[0].attNext=true;render()');
+ok('标记后课表显示「会考勤」', doc.getElementById('agenda').innerHTML.indexOf('会考勤') >= 0);
+const cidA = win.eval('courses[0].id');
+win.eval(`toggleAttNext('${cidA}')`);
+ok('取消标记生效', win.eval('courses[0].attNext') === false);
+win.eval('closeM();courses[0].attNext=true;render()');
+
+/* 作业：第 1 周布置，下周一（第 2 周周一 09-14）截止 */
+win.eval(`assigns.length=0;
+  assigns.push({id:'hw1',c:courses[0].id,week:1,title:'第一章习题',type:'课后作业',content:'x',
+    method:'学习平台',target:'',material:'x',due:'2026-09-14 23:59',hours:3,weight:10,status:'未开始',prio:'中',todos:[]});
+  gotoWeek(1)`);
+ok('课表卡片显示「有作业」', doc.getElementById('agenda').innerHTML.indexOf('有作业') >= 0);
+ok('截止显示为相对周（下周一）', doc.getElementById('agenda').innerHTML.indexOf('下周一') >= 0);
+
+/* 切到截止所在那一周：对应日期标黄并列出待交作业 */
+win.eval('gotoWeek(2)');
+const dueDays = doc.querySelectorAll('#agenda .agd.due');
+ok('截止当天被标黄（.agd.due）', dueDays.length === 1 ? true : dueDays.length);
+ok('标黄的正是周一', (function () { const all = doc.querySelectorAll('#agenda .agd'); return all[0].className.indexOf('due') >= 0 })());
+ok('黄色区块写明「需提交作业」', doc.getElementById('agenda').innerHTML.indexOf('需提交作业') >= 0);
+ok('黄色区块含作业标题', doc.getElementById('agenda').innerHTML.indexOf('第一章习题') >= 0);
+
+/* 交掉之后不再提醒 */
+win.eval(`assigns[0].status='已提交';gotoWeek(2)`);
+ok('提交后不再标黄', doc.querySelectorAll('#agenda .agd.due').length === 0 ? true : doc.querySelectorAll('#agenda .agd.due').length);
+win.eval(`assigns.length=0;courses[0].attNext=false;gotoWeek(1)`);
+
 console.log('\n=== 4. 结果 ===');
 console.log(errs.length ? '存在 ' + errs.length + ' 个错误' : '全部通过');
 if (errs.length) errs.slice(0, 8).forEach(e => console.log('  ! ' + e.slice(0, 300)));

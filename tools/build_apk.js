@@ -154,7 +154,7 @@ if (!fs.existsSync(ks)) {
     ' -storepass schedule2026 -keypass schedule2026' +
     ' -dname "CN=Graduate Schedule, OU=Personal, O=Personal, L=Beijing, ST=Beijing, C=CN"', ROOT)) process.exit(1);
 }
-const signed = OUT + '/GradSchedule-v1.5.apk';
+const signed = OUT + '/GradSchedule-v1.6.apk';
 if (!run(q(JAVA) + ' -jar ' + q(APKSIGNER) + ' sign --ks ' + q(ks) + ' --ks-key-alias schedule' +
   ' --ks-pass pass:schedule2026 --key-pass pass:schedule2026 --out ' + q(signed) + ' ' + q(aligned), ROOT)) process.exit(1);
 console.log('[8/9] signed ok');

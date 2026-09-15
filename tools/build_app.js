@@ -64,6 +64,10 @@ const CSS = `
     table.tb{font-size:11.5px}
     table.tb th,table.tb td{padding:5px 6px}
     .appmore{display:block}
+    .wsel{font-size:14px;padding:8px 10px}
+    .agtags{gap:6px;margin-top:6px}
+    .attflag,.hwtag{font-size:11px;padding:2px 6px}
+    .agdue{font-size:12px;padding:8px 10px;margin:8px 10px}
   }
 `;
 html = html.replace('</style>', CSS + '\n</style>');
